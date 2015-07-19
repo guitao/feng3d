@@ -33,10 +33,15 @@ package me.feng3d.events
 		 * 场景变换矩阵发生变化
 		 */
 		public static const SCENETRANSFORM_CHANGED:String = "scenetransformChanged";
-		
-		public function Object3DEvent(type:String, element3D:Element3D)
+
+		/**
+		 * 创建3D对象事件
+		 * @param type			事件类型
+		 * @param element3D		发出事件的3D元素
+		 */
+		public function Object3DEvent(type:String, element3D:Element3D, bubbles:Boolean = false, cancelable:Boolean = false)
 		{
-			super(type, data);
+			super(type, data, bubbles, cancelable);
 		}
 
 		/**

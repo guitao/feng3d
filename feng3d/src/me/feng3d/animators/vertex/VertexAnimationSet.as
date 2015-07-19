@@ -1,11 +1,11 @@
 package me.feng3d.animators.vertex
 {
 	import me.feng3d.arcane;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.fagal.params.ShaderParams;
-	import me.feng3d.passes.MaterialPassBase;
-	import me.feng3d.animators.base.AnimationSetBase;
 	import me.feng3d.animators.AnimationType;
+	import me.feng3d.animators.base.AnimationSetBase;
+	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.params.ShaderParamsAnimation;
+	import me.feng3d.passes.MaterialPassBase;
 
 	use namespace arcane;
 
@@ -23,12 +23,14 @@ package me.feng3d.animators.vertex
 			super();
 		}
 
-		override arcane function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy, pass:MaterialPassBase):void
+		override arcane function activate(shaderParams:ShaderParams, pass:MaterialPassBase):void
 		{
+			var shaderParamsAnimation:ShaderParamsAnimation = shaderParams.getComponent(ShaderParamsAnimation.NAME);
+
 			if (usesCPU)
-				shaderParams.animationType = AnimationType.VERTEX_CPU;
+				shaderParamsAnimation.animationType = AnimationType.VERTEX_CPU;
 			else
-				shaderParams.animationType = AnimationType.VERTEX_GPU;
+				shaderParamsAnimation.animationType = AnimationType.VERTEX_GPU;
 		}
 	}
 }

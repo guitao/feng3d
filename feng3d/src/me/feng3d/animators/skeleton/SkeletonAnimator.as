@@ -2,23 +2,23 @@ package me.feng3d.animators.skeleton
 {
 	import flash.geom.Vector3D;
 	import flash.utils.Dictionary;
-	
+
 	import me.feng3d.arcane;
+	import me.feng3d.animators.IAnimator;
+	import me.feng3d.animators.base.AnimationSetBase;
+	import me.feng3d.animators.base.MultiClipAnimator;
 	import me.feng3d.animators.skeleton.data.JointPose;
 	import me.feng3d.animators.skeleton.data.Skeleton;
 	import me.feng3d.animators.skeleton.data.SkeletonJoint;
 	import me.feng3d.animators.skeleton.data.SkeletonPose;
 	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.base.IRenderable;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.base.subgeometry.SkinnedSubGeometry;
 	import me.feng3d.core.base.submesh.SubMesh;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
 	import me.feng3d.core.buffer.context3d.VCVectorBuffer;
 	import me.feng3d.core.math.Quaternion;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.animators.base.AnimationSetBase;
-	import me.feng3d.animators.IAnimator;
-	import me.feng3d.animators.base.MultiClipAnimator;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDAnimation;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 
 	use namespace arcane;
 
@@ -45,9 +45,9 @@ package me.feng3d.animators.skeleton
 		/** 显示关节姿势 */
 		private var _skeletonPose:SkeletonPose = new SkeletonPose();
 		private var _showSkeletonPoseDirty:Boolean = true;
-		
+
 		private var _activeSkeletonClipNode:SkeletonClipNode;
-		
+
 		/**
 		 * 是否强行使用cpu
 		 */
@@ -86,7 +86,7 @@ package me.feng3d.animators.skeleton
 			_globalMatrices.length = _numJoints * 12;
 			_globalMatrices.fixed = true;
 
-			//初始化骨骼转换矩阵
+			//初始化骨骼变换矩阵
 			var j:int;
 			for (var i:uint = 0; i < _numJoints; ++i)
 			{
@@ -104,13 +104,13 @@ package me.feng3d.animators.skeleton
 				_globalMatrices[j++] = 0;
 			}
 		}
-		
+
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.GLOBALMATRICES_VC_VECTOR, VCVectorBuffer, updateGlobalmatricesBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDAnimation.GLOBALMATRICES_VC_VECTOR, updateGlobalmatricesBuffer);
 		}
-		
+
 		private function updateGlobalmatricesBuffer(globalmatricesBuffer:VCVectorBuffer):void
 		{
 			globalmatricesBuffer.update(_globalMatrices);
@@ -132,7 +132,7 @@ package me.feng3d.animators.skeleton
 
 				//获取活动的骨骼状态
 				_activeSkeletonClipNode = _skeletonAnimationSet.getAnimation(animationName) as SkeletonClipNode;
-				
+
 				_numFrames = _activeSkeletonClipNode.frames.length;
 				cycle = _activeSkeletonClipNode.totalDuration;
 			}
@@ -144,7 +144,7 @@ package me.feng3d.animators.skeleton
 				reset(animationName, offset);
 		}
 
-		public function setRenderState(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		public function setRenderState(renderable:IRenderable, camera:Camera3D):void
 		{
 			//检查全局变换矩阵
 			if (_globalPropertiesDirty)
@@ -172,30 +172,30 @@ package me.feng3d.animators.skeleton
 			super.update();
 
 			_showSkeletonPoseDirty = true;
-			
-			markBufferDirty(Context3DBufferTypeID.GLOBALMATRICES_VC_VECTOR);
+
+			markBufferDirty(Context3DBufferTypeIDAnimation.GLOBALMATRICES_VC_VECTOR);
 
 			_globalPropertiesDirty = true;
 
 			for (var key:Object in _animationStates)
 				SubGeomAnimationState(_animationStates[key]).dirty = true;
 		}
-		
+
 		/**
 		 * 获取骨骼姿势
 		 * @param skeleton 骨骼
 		 * @return 骨骼姿势
-		 */		
+		 */
 		public function getSkeletonPose(skeleton:Skeleton):SkeletonPose
 		{
 			if (_showSkeletonPoseDirty)
 				updateSkeletonPose(skeleton);
-			
+
 			return _skeletonPose;
 		}
 
 		/**
-		 * 更新骨骼全局转换矩阵
+		 * 更新骨骼全局变换矩阵
 		 */
 		private function updateGlobalProperties():void
 		{
@@ -204,7 +204,7 @@ package me.feng3d.animators.skeleton
 			//获取全局骨骼姿势
 			localToGlobalPose(getSkeletonPose(_skeleton), _globalPose, _skeleton);
 
-			//姿势转换矩阵
+			//姿势变换矩阵
 			//矩阵偏移量
 			var mtxOffset:uint;
 			var globalPoses:Vector.<JointPose> = _globalPose.jointPoses;
@@ -236,7 +236,7 @@ package me.feng3d.animators.skeleton
 				oz = quat.z;
 				ow = quat.w;
 
-				//计算关节的全局转换矩阵
+				//计算关节的全局变换矩阵
 				xy2 = (t = 2.0 * ox) * oy;
 				xz2 = t * oz;
 				xw2 = t * ow;
@@ -252,7 +252,7 @@ package me.feng3d.animators.skeleton
 				oz *= oz;
 				ow *= ow;
 
-				//保存关节的全局转换矩阵
+				//保存关节的全局变换矩阵
 				n11 = (t = ox - oy) - oz + ow;
 				n12 = xy2 - zw2;
 				n13 = xz2 + yw2;
@@ -278,7 +278,7 @@ package me.feng3d.animators.skeleton
 				m33 = raw[10];
 				m34 = raw[14];
 
-				//计算关节全局转换矩阵(通过初始状态 关节逆矩阵与全局转换矩阵 计算 当前状态的关节矩阵)
+				//计算关节全局变换矩阵(通过初始状态 关节逆矩阵与全局变换矩阵 计算 当前状态的关节矩阵)
 				_globalMatrices[uint(mtxOffset)] = n11 * m11 + n12 * m21 + n13 * m31;
 				_globalMatrices[uint(mtxOffset + 1)] = n11 * m12 + n12 * m22 + n13 * m32;
 				_globalMatrices[uint(mtxOffset + 2)] = n11 * m13 + n12 * m23 + n13 * m33;
@@ -305,7 +305,7 @@ package me.feng3d.animators.skeleton
 		private function morphGeometry(state:SubGeomAnimationState, subGeom:SkinnedSubGeometry):void
 		{
 			//几何体顶点数据
-			var vertexData:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeID.POSITION_VA_3);
+			var vertexData:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3);
 			//动画顶点数据（目标数据）
 			var targetData:Vector.<Number> = state.animatedVertexData;
 			var jointIndices:Vector.<Number> = subGeom.jointIndexData;
@@ -337,7 +337,7 @@ package me.feng3d.animators.skeleton
 					weight = jointWeights[j];
 					if (weight > 0)
 					{
-						//读取该关节的全局转换矩阵
+						//读取该关节的全局变换矩阵
 						var mtxOffset:uint = uint(jointIndices[j++]) << 2;
 						m11 = _globalMatrices[mtxOffset];
 						m12 = _globalMatrices[uint(mtxOffset + 1)];
@@ -351,7 +351,7 @@ package me.feng3d.animators.skeleton
 						m32 = _globalMatrices[uint(mtxOffset + 9)];
 						m33 = _globalMatrices[uint(mtxOffset + 10)];
 						m34 = _globalMatrices[uint(mtxOffset + 11)];
-						//根据关节的全局转换矩阵与对应权重计算出对该坐标的影响值
+						//根据关节的全局变换矩阵与对应权重计算出对该坐标的影响值
 						vx += weight * (m11 * vertX + m12 * vertY + m13 * vertZ + m14);
 						vy += weight * (m21 * vertX + m22 * vertY + m23 * vertZ + m24);
 						vz += weight * (m31 * vertX + m32 * vertY + m33 * vertZ + m34);
@@ -370,7 +370,7 @@ package me.feng3d.animators.skeleton
 				targetData[uint(index + 2)] = vz;
 
 				//跳到下个顶点的起始位置
-				index = uint(index + subGeom.getVALen(Context3DBufferTypeID.POSITION_VA_3));
+				index = uint(index + subGeom.getVALen(Context3DBufferTypeIDCommon.POSITION_VA_3));
 			}
 		}
 
@@ -482,21 +482,21 @@ package me.feng3d.animators.skeleton
 				}
 			}
 		}
-		
+
 		/**
 		 * 更新骨骼姿势
 		 * @param skeleton 骨骼
-		 */		
+		 */
 		private function updateSkeletonPose(skeleton:Skeleton):void
 		{
 			_showSkeletonPoseDirty = false;
-			
+
 			if (!_activeSkeletonClipNode.totalDuration)
 				return;
-			
+
 			if (_framesDirty)
 				updateFrames();
-			
+
 			var currentPose:Vector.<JointPose> = _activeSkeletonClipNode.frames[currentFrame].jointPoses;
 			var nextPose:Vector.<JointPose> = _activeSkeletonClipNode.frames[nextFrame].jointPoses;
 			var numJoints:uint = skeleton.numJoints;
@@ -505,34 +505,36 @@ package me.feng3d.animators.skeleton
 			var showPoses:Vector.<JointPose> = _skeletonPose.jointPoses;
 			var showPose:JointPose;
 			var tr:Vector3D;
-			
+
 			//调整当前显示关节姿势数量
 			if (showPoses.length != numJoints)
 				showPoses.length = numJoints;
-			
+
 			if ((numJoints != currentPose.length) || (numJoints != nextPose.length))
 				throw new Error("joint counts don't match!");
-			
-			for (var i:uint = 0; i < numJoints; ++i) {
+
+			for (var i:uint = 0; i < numJoints; ++i)
+			{
 				showPose = showPoses[i] ||= new JointPose();
 				pose1 = currentPose[i];
 				pose2 = nextPose[i];
 				p1 = pose1.translation;
 				p2 = pose2.translation;
-				
+
 				//根据前后两个关节姿势计算出当前显示关节姿势
 				showPose.orientation.lerp(pose1.orientation, pose2.orientation, _blendWeight);
-				
+
 				//计算显示的关节位置
-				if (i > 0) {
+				if (i > 0)
+				{
 					tr = showPose.translation;
-					tr.x = p1.x + _blendWeight*(p2.x - p1.x);
-					tr.y = p1.y + _blendWeight*(p2.y - p1.y);
-					tr.z = p1.z + _blendWeight*(p2.z - p1.z);
+					tr.x = p1.x + _blendWeight * (p2.x - p1.x);
+					tr.y = p1.y + _blendWeight * (p2.y - p1.y);
+					tr.z = p1.z + _blendWeight * (p2.z - p1.z);
 				}
 			}
 		}
-		
+
 //		protected function updatePositionDelta():void
 //		{
 //			_positionDeltaDirty = false;
@@ -578,11 +580,11 @@ package me.feng3d.animators.skeleton
 //			//保存旧帧编号
 //			_oldFrame = _nextFrame;
 //		}
-		
+
 	}
 }
 import me.feng3d.core.base.subgeometry.SubGeometry;
-import me.feng3d.core.buffer.Context3DBufferTypeID;
+import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 
 /**
  * 动画状态几何体数据
@@ -600,6 +602,6 @@ class SubGeomAnimationState
 	 */
 	public function SubGeomAnimationState(subGeom:SubGeometry)
 	{
-		animatedVertexData = subGeom.getVAData(Context3DBufferTypeID.POSITION_VA_3).concat();
+		animatedVertexData = subGeom.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3).concat();
 	}
 }

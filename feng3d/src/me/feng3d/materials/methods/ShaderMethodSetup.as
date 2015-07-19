@@ -3,8 +3,7 @@ package me.feng3d.materials.methods
 	import me.feng3d.arcane;
 	import me.feng3d.cameras.Camera3D;
 	import me.feng3d.core.base.Context3DBufferOwner;
-	import me.feng3d.core.base.IRenderable;
-	import me.feng3d.core.proxy.Stage3DProxy;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.events.ShadingMethodEvent;
 	import me.feng3d.fagal.params.ShaderParams;
 
@@ -20,7 +19,11 @@ package me.feng3d.materials.methods
 		arcane var _ambientMethod:BasicAmbientMethod;
 		arcane var _diffuseMethod:BasicDiffuseMethod;
 		arcane var _specularMethod:BasicSpecularMethod;
+		arcane var _shadowMethod:ShadowMapMethodBase;
 
+		/**
+		 * 创建一个渲染函数设置
+		 */
 		public function ShaderMethodSetup()
 		{
 			normalMethod = new BasicNormalMethod();
@@ -102,7 +105,7 @@ package me.feng3d.materials.methods
 				_normalMethod.removeEventListener(ShadingMethodEvent.SHADER_INVALIDATED, onShaderInvalidated);
 				if (value)
 					value.copyFrom(_normalMethod);
-				
+
 				removeChildBufferOwner(_normalMethod);
 			}
 
@@ -162,20 +165,59 @@ package me.feng3d.materials.methods
 			invalidateShaderProgram();
 		}
 
-		public function setRenderState(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		/**
+		 * The method used to render shadows cast on this surface, or null if no shadows are to be rendered.
+		 */
+		public function get shadowMethod():ShadowMapMethodBase
 		{
-			normalMethod.setRenderState(renderable, stage3DProxy, camera);
-			ambientMethod.setRenderState(renderable, stage3DProxy, camera);
-			diffuseMethod.setRenderState(renderable, stage3DProxy, camera);
-			specularMethod.setRenderState(renderable, stage3DProxy, camera);
+			return _shadowMethod;
 		}
 
-		public function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy):void
+		public function set shadowMethod(value:ShadowMapMethodBase):void
 		{
-			_normalMethod && _normalMethod.activate(shaderParams, stage3DProxy);
-			_ambientMethod && _ambientMethod.activate(shaderParams, stage3DProxy);
-			_diffuseMethod && _diffuseMethod.activate(shaderParams, stage3DProxy);
-			_specularMethod && _specularMethod.activate(shaderParams, stage3DProxy);
+			if (_shadowMethod)
+			{
+				_shadowMethod.removeEventListener(ShadingMethodEvent.SHADER_INVALIDATED, onShaderInvalidated);
+				if (value)
+					value.copyFrom(_shadowMethod);
+				removeChildBufferOwner(_shadowMethod);
+			}
+			_shadowMethod = value;
+			if (_shadowMethod)
+			{
+				_shadowMethod.addEventListener(ShadingMethodEvent.SHADER_INVALIDATED, onShaderInvalidated);
+				addChildBufferOwner(_shadowMethod);
+			}
+			invalidateShaderProgram();
+		}
+
+		/**
+		 * 设置渲染状态
+		 * @param renderable		可渲染对象
+		 * @param stage3DProxy		3D舞台代理
+		 * @param camera			摄像机
+		 */
+		public function setRenderState(renderable:IRenderable, camera:Camera3D):void
+		{
+			normalMethod.setRenderState(renderable, camera);
+			ambientMethod.setRenderState(renderable, camera);
+			diffuseMethod.setRenderState(renderable, camera);
+			specularMethod.setRenderState(renderable, camera);
+			shadowMethod && shadowMethod.setRenderState(renderable, camera);
+		}
+
+		/**
+		 * 激活
+		 * @param shaderParams		渲染参数
+		 * @param stage3DProxy		3D舞台代理
+		 */
+		public function activate(shaderParams:ShaderParams):void
+		{
+			_normalMethod && _normalMethod.activate(shaderParams);
+			_ambientMethod && _ambientMethod.activate(shaderParams);
+			_diffuseMethod && _diffuseMethod.activate(shaderParams);
+			_specularMethod && _specularMethod.activate(shaderParams);
+			_shadowMethod && _shadowMethod.activate(shaderParams);
 		}
 	}
 }

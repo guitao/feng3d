@@ -1,5 +1,7 @@
 package me.feng3d.events
 {
+	import flash.events.Event;
+
 	import me.feng.events.FEvent;
 	import me.feng3d.containers.ObjectContainer3D;
 	import me.feng3d.core.pick.PickingCollisionVO;
@@ -7,6 +9,7 @@ package me.feng3d.events
 	/**
 	 * 3d鼠标事件
 	 * @author warden_feng 2014-4-29
+	 * @see flash.events.MouseEvent
 	 */
 	public class MouseEvent3D extends FEvent
 	{
@@ -60,9 +63,27 @@ package me.feng3d.events
 		 */
 		public var collider:PickingCollisionVO;
 
-		public function MouseEvent3D(type:String, data:* = null, bubbles:Boolean = true)
+		/**
+		 * 创建一个3D鼠标事件
+		 * @param data					事件携带的数据
+		 * @param type 					事件的类型，可以作为 Event.type 访问。
+		 * @param bubbles 				确定 Event 对象是否参与事件流的冒泡阶段。默认值为 false。
+		 * @param cancelable 			确定是否可以取消 Event 对象。默认值为 false。
+		 */
+		public function MouseEvent3D(type:String, data:* = null, bubbles:Boolean = true, cancelable:Boolean = false)
 		{
-			super(type, data, bubbles);
+			super(type, data, bubbles, cancelable);
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		override public function clone():Event
+		{
+			var cl:MouseEvent3D = super.clone() as MouseEvent3D;
+			cl.object = object;
+			cl.collider = cl.collider;
+			return cl;
 		}
 	}
 }

@@ -3,17 +3,16 @@ package me.feng3d.animators.particle.node
 	import flash.geom.Matrix3D;
 	import flash.geom.Orientation3D;
 	import flash.geom.Vector3D;
-	
+
 	import me.feng3d.arcane;
 	import me.feng3d.animators.particle.data.ParticlePropertiesMode;
 	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.base.IRenderable;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.buffer.context3d.VCMatrixBuffer;
 	import me.feng3d.core.math.MathConsts;
 	import me.feng3d.core.math.Matrix3DUtils;
-	import me.feng3d.core.proxy.Stage3DProxy;
 	import me.feng3d.fagal.context3dDataIds.ParticleContext3DBufferID;
-	import me.feng3d.fagal.params.ParticleShaderParam;
+	import me.feng3d.fagal.params.ShaderParamsParticle;
 
 	use namespace arcane;
 
@@ -24,7 +23,7 @@ package me.feng3d.animators.particle.node
 	public class ParticleBillboardNode extends ParticleNodeBase
 	{
 		private const _matrix:Matrix3D = new Matrix3D;
-		
+
 		/** 广告牌轴线 */
 		arcane var _billboardAxis:Vector3D;
 
@@ -38,20 +37,20 @@ package me.feng3d.animators.particle.node
 
 			this.billboardAxis = billboardAxis;
 		}
-		
+
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			
-			mapContext3DBuffer(ParticleContext3DBufferID.PARTICLEBILLBOARD_VC_MATRIX, VCMatrixBuffer, updateBillboardMatrixBuffer);
+
+			mapContext3DBuffer(ParticleContext3DBufferID.PARTICLEBILLBOARD_VC_MATRIX, updateBillboardMatrixBuffer);
 		}
-		
+
 		private function updateBillboardMatrixBuffer(billboardMatrixBuffer:VCMatrixBuffer):void
 		{
 			billboardMatrixBuffer.update(_matrix, true);
 		}
-		
-		override public function setRenderState(stage3DProxy:Stage3DProxy, renderable:IRenderable, camera:Camera3D):void
+
+		override public function setRenderState(renderable:IRenderable, camera:Camera3D):void
 		{
 			var comps:Vector.<Vector3D>;
 			if (_billboardAxis)
@@ -62,7 +61,7 @@ package me.feng3d.animators.particle.node
 				right.normalize();
 				look = _billboardAxis.crossProduct(right);
 				look.normalize();
-				
+
 				//create a quick inverse projection matrix
 				_matrix.copyFrom(renderable.sourceEntity.sceneTransform);
 				comps = Matrix3DUtils.decompose(_matrix, Orientation3D.AXIS_ANGLE);
@@ -77,18 +76,18 @@ package me.feng3d.animators.particle.node
 				//create a quick inverse projection matrix
 				_matrix.copyFrom(renderable.sourceEntity.sceneTransform);
 				_matrix.append(camera.inverseSceneTransform);
-				
+
 				//decompose using axis angle rotations
 				comps = Matrix3DUtils.decompose(_matrix, Orientation3D.AXIS_ANGLE);
-				
+
 				//recreate the matrix with just the rotation data
 				_matrix.identity();
 				_matrix.appendRotation(-comps[1].w * MathConsts.RADIANS_TO_DEGREES, comps[1]);
 			}
-			
+
 			markBufferDirty(ParticleContext3DBufferID.PARTICLEBILLBOARD_VC_MATRIX);
 		}
-		
+
 		/**
 		 * 广告牌轴线
 		 */
@@ -96,7 +95,7 @@ package me.feng3d.animators.particle.node
 		{
 			return _billboardAxis;
 		}
-		
+
 		public function set billboardAxis(value:Vector3D):void
 		{
 			_billboardAxis = value ? value.clone() : null;
@@ -107,7 +106,7 @@ package me.feng3d.animators.particle.node
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function processAnimationSetting(particleShaderParam:ParticleShaderParam):void
+		override arcane function processAnimationSetting(particleShaderParam:ShaderParamsParticle):void
 		{
 			particleShaderParam.changePosition++;
 			particleShaderParam[animationName] = true;

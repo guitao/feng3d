@@ -1,14 +1,18 @@
 package me.feng3d.materials.methods
 {
+	import flash.display3D.Context3DWrapMode;
+
 	import me.feng3d.arcane;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
 	import me.feng3d.core.buffer.context3d.FCVectorBuffer;
 	import me.feng3d.core.buffer.context3d.FSArrayBuffer;
 	import me.feng3d.core.buffer.context3d.FSBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.fagal.params.ShaderParams;
-	import me.feng3d.fagal.TextureFlag;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDTerrain;
 	import me.feng3d.fagal.fragment.F_TerrainDiffusePostLighting;
+	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.params.ShaderParamsCommon;
+	import me.feng3d.fagal.params.ShaderParamsLight;
+	import me.feng3d.fagal.params.ShaderParamsTerrain;
 	import me.feng3d.textures.Texture2DBase;
 
 	use namespace arcane;
@@ -49,7 +53,7 @@ package me.feng3d.materials.methods
 		public function set splats(value:Array):void
 		{
 			_splats = value;
-			markBufferDirty(Context3DBufferTypeID.TERRAINTEXTURES_FS);
+			markBufferDirty(Context3DBufferTypeIDTerrain.TERRAINTEXTURES_FS_ARRAY);
 		}
 
 		public function get blendingTexture():Texture2DBase
@@ -60,15 +64,15 @@ package me.feng3d.materials.methods
 		public function set blendingTexture(value:Texture2DBase):void
 		{
 			_blendingTexture = value;
-			markBufferDirty(Context3DBufferTypeID.BLENDINGTEXTURE_FS);
+			markBufferDirty(Context3DBufferTypeIDTerrain.BLENDINGTEXTURE_FS);
 		}
 
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.BLENDINGTEXTURE_FS, FSBuffer, updateBlendingTextureBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.TERRAINTEXTURES_FS, FSArrayBuffer, updateTerrainTextureBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.TILE_FC_VECTOR, FCVectorBuffer, updateTileDataBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDTerrain.BLENDINGTEXTURE_FS, updateBlendingTextureBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDTerrain.TERRAINTEXTURES_FS_ARRAY, updateTerrainTextureBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDTerrain.TILE_FC_VECTOR, updateTileDataBuffer);
 		}
 
 		private function updateTerrainTextureBuffer(terrainTextureBufferArr:FSArrayBuffer):void
@@ -86,17 +90,22 @@ package me.feng3d.materials.methods
 			nBlendingTextureBuffer.update(blendingTexture);
 		}
 
-		override arcane function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy):void
+		override arcane function activate(shaderParams:ShaderParams):void
 		{
-			super.activate(shaderParams, stage3DProxy);
+			super.activate(shaderParams);
 
-			shaderParams.splatNum = _numSplattingLayers;
+			//通用渲染参数
+			var common:ShaderParamsCommon = shaderParams.getComponent(ShaderParamsCommon.NAME);
+			var shaderParamsLight:ShaderParamsLight = shaderParams.getComponent(ShaderParamsLight.NAME);
+			var shaderParamsTerrain:ShaderParamsTerrain = shaderParams.getComponent(ShaderParamsTerrain.NAME);
 
-			shaderParams.addSampleFlags(Context3DBufferTypeID.TEXTURE_FS, texture, TextureFlag.MODE_WRAP);
-			shaderParams.addSampleFlags(Context3DBufferTypeID.TERRAINTEXTURES_FS, splats[0], TextureFlag.MODE_WRAP);
-			shaderParams.addSampleFlags(Context3DBufferTypeID.BLENDINGTEXTURE_FS, blendingTexture);
+			shaderParamsTerrain.splatNum = _numSplattingLayers;
 
-			shaderParams.diffuseMethod = F_TerrainDiffusePostLighting;
+			common.addSampleFlags(Context3DBufferTypeIDCommon.TEXTURE_FS, texture, Context3DWrapMode.REPEAT);
+			common.addSampleFlags(Context3DBufferTypeIDTerrain.TERRAINTEXTURES_FS_ARRAY, splats[0], Context3DWrapMode.REPEAT);
+			common.addSampleFlags(Context3DBufferTypeIDTerrain.BLENDINGTEXTURE_FS, blendingTexture);
+
+			shaderParamsLight.diffuseMethod = F_TerrainDiffusePostLighting;
 		}
 	}
 }

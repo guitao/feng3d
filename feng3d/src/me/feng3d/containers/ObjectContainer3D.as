@@ -3,6 +3,7 @@ package me.feng3d.containers
 	import me.feng3d.arcane;
 	import me.feng3d.core.base.InteractiveObject3D;
 	import me.feng3d.core.base.Object3D;
+	import me.feng3d.core.partition.Partition3D;
 	import me.feng3d.library.assets.AssetType;
 	import me.feng3d.library.assets.IAsset;
 
@@ -29,21 +30,24 @@ package me.feng3d.containers
 
 		/**
 		 * 添加子对象
-		 * @param child
-		 * @return
+		 * @param child		子对象
+		 * @return			新增的子对象
 		 */
 		public function addChild(child:Object3D):Object3D
 		{
-			_children.push(child);
+			if (!child._explicitPartition)
+				child.implicitPartition = _implicitPartition;
+
 			child.parent = this;
-			child.setScene3D(scene3D);
+			child.scene = scene;
+			_children.push(child);
 			return child;
 		}
 
 		/**
-		 * 移出指定位置的子对象
-		 * @param childIndex
-		 * @return
+		 * 移出指定索引的子对象
+		 * @param childIndex	子对象索引
+		 * @return				被移除对象
 		 */
 		public function removeChildAt(childIndex:int):Object3D
 		{
@@ -54,7 +58,7 @@ package me.feng3d.containers
 
 		/**
 		 * 移除子对象
-		 * @param child
+		 * @param child		子对象
 		 */
 		public function removeChild(child:Object3D):void
 		{
@@ -65,27 +69,33 @@ package me.feng3d.containers
 			}
 		}
 
+		/**
+		 * 内部移除子对象
+		 * @param childIndex	移除子对象所在索引
+		 * @param child			移除子对象
+		 */
 		private function removeChildInternal(childIndex:uint, child:Object3D):void
 		{
-			// index is important because getChildAt needs to be regular.
 			_children.splice(childIndex, 1);
 
-			// this needs to be nullified before the callbacks!
 			child.parent = null;
-			child.setScene3D(null);
+			child.scene = null;
 		}
 
-		override arcane function setScene3D(scene:Scene3D):void
+		override public function set scene(scene:Scene3D):void
 		{
-			super.setScene3D(scene);
+			super.scene = scene;
 
 			var len:uint = _children.length;
 			for (var i:int = 0; i < len; i++)
 			{
-				_children[i].setScene3D(scene);
+				_children[i].scene = scene;
 			}
 		}
 
+		/**
+		 * 使变换矩阵失效，子对象变化矩阵也将失效
+		 */
 		override public function invalidateTransform():void
 		{
 			var len:uint = _children.length;
@@ -145,6 +155,33 @@ package me.feng3d.containers
 			return mouseChildren && (parent ? parent.ancestorsAllowMouseEnabled : true);
 		}
 
+		/**
+		 * @inheritDoc
+		 */
+		override arcane function set implicitPartition(value:Partition3D):void
+		{
+			if (value == _implicitPartition)
+				return;
+
+			_implicitPartition = value;
+
+			var i:uint;
+			var len:uint = _children.length;
+			var child:Object3D;
+
+			while (i < len)
+			{
+				child = _children[i];
+				i++;
+
+				if (!child._explicitPartition)
+					child.implicitPartition = value;
+			}
+		}
+
+		/**
+		 * @inheritDoc
+		 */
 		public function get assetType():String
 		{
 			return AssetType.CONTAINER;

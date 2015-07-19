@@ -1,13 +1,14 @@
 package me.feng3d.animators.particle.node
 {
+	import me.feng.error.AbstractClassError;
+	import me.feng.error.AbstractMethodError;
 	import me.feng3d.arcane;
 	import me.feng3d.animators.particle.data.ParticleProperties;
 	import me.feng3d.cameras.Camera3D;
 	import me.feng3d.core.base.Context3DBufferOwner;
-	import me.feng3d.core.base.IRenderable;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.errors.AbstractMethodError;
-	import me.feng3d.fagal.params.ParticleShaderParam;
+	import me.feng3d.fagal.params.ShaderParamsParticle;
 
 	use namespace arcane;
 
@@ -92,8 +93,10 @@ package me.feng3d.animators.particle.node
 			_dataLength = dataLength;
 
 			_oneData = new Vector.<Number>(_dataLength, true);
-			
+
 			super();
+
+			AbstractClassError.check(this);
 		}
 
 		/**
@@ -140,7 +143,7 @@ package me.feng3d.animators.particle.node
 		 * 设置粒子渲染参数
 		 * @param particleShaderParam 粒子渲染参数
 		 */
-		arcane function processAnimationSetting(particleShaderParam:ParticleShaderParam):void
+		arcane function processAnimationSetting(particleShaderParam:ShaderParamsParticle):void
 		{
 			throw new Error("必须设置对应的渲染参数");
 		}
@@ -149,9 +152,9 @@ package me.feng3d.animators.particle.node
 		 * 设置渲染状态
 		 * @param stage3DProxy			显卡代理
 		 * @param renderable			渲染实体
-		 * @param camera				照相机
+		 * @param camera				摄像机
 		 */
-		public function setRenderState(stage3DProxy:Stage3DProxy, renderable:IRenderable, camera:Camera3D):void
+		public function setRenderState(renderable:IRenderable, camera:Camera3D):void
 		{
 
 		}

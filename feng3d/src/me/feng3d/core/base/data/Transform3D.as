@@ -2,7 +2,7 @@ package me.feng3d.core.base.data
 {
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
-	
+
 	import me.feng3d.core.math.MathConsts;
 	import me.feng3d.core.math.Matrix3DUtils;
 
@@ -220,7 +220,7 @@ package me.feng3d.core.base.data
 
 		/**
 		 * 在自定义轴上位移<br/>
-		 * 
+		 *
 		 * 注意：
 		 * <ul>
 		 * 		<li>没太理解 与 translate的区别</li>
@@ -308,14 +308,14 @@ package me.feng3d.core.base.data
 		private static var tempAxeX:Vector3D;
 		private static var tempAxeY:Vector3D;
 		private static var tempAxeZ:Vector3D;
-		
+
 		/**
 		 * 观察目标
 		 * <ul>
 		 * 		<li>旋转至朝向给出的点</li>
 		 * </ul>
-		 * @param target 目标点
-		 * @param upAxis An optional vector used to define the desired up orientation of the 3d object after rotation has occurred
+		 * @param target 	目标点
+		 * @param upAxis 	旋转后向上方向（并非绝对向上），默认为null，当值为null时会以Y轴为向上方向计算
 		 */
 		public function lookAt(target:Vector3D, upAxis:Vector3D = null):void
 		{
@@ -325,30 +325,36 @@ package me.feng3d.core.base.data
 				tempAxeY = new Vector3D();
 			if (!tempAxeZ)
 				tempAxeZ = new Vector3D();
+			//旋转后的X轴
 			var xAxis:Vector3D = tempAxeX;
+			//旋转后的Y轴
 			var yAxis:Vector3D = tempAxeY;
+			//旋转后的Z轴
 			var zAxis:Vector3D = tempAxeZ;
 
 			var raw:Vector.<Number>;
 
+			//向上方向默认值为Y轴
 			upAxis ||= Vector3D.Y_AXIS;
 
 			if (_transformDirty)
 			{
 				updateTransform();
 			}
-			
-			//照相机位置不能与目标同一个位置上
+
+			//物体与目标点在相同位置时，稍作偏移
 			if(new Vector3D(_x,_y,_z).subtract(target).length == 0)
 			{
 				_z = target.z + 0.1;
 			}
 
+			//获得Z轴
 			zAxis.x = target.x - _x;
 			zAxis.y = target.y - _y;
 			zAxis.z = target.z - _z;
 			zAxis.normalize();
 
+			//向上方向与Z轴 叉乘 得到X轴
 			xAxis.x = upAxis.y * zAxis.z - upAxis.z * zAxis.y;
 			xAxis.y = upAxis.z * zAxis.x - upAxis.x * zAxis.z;
 			xAxis.z = upAxis.x * zAxis.y - upAxis.y * zAxis.x;
@@ -362,12 +368,14 @@ package me.feng3d.core.base.data
 				xAxis.normalize();
 			}
 
+			//Z轴叉乘X轴 得到 Y轴，Z与X为标准化向量，得到的Y轴也将是标准化向量
 			yAxis.x = zAxis.y * xAxis.z - zAxis.z * xAxis.y;
 			yAxis.y = zAxis.z * xAxis.x - zAxis.x * xAxis.z;
 			yAxis.z = zAxis.x * xAxis.y - zAxis.y * xAxis.x;
 
 			raw = Matrix3DUtils.RAW_DATA_CONTAINER;
 
+			//根据XYZ轴计算变换矩阵
 			raw[uint(0)] = _scaleX * xAxis.x;
 			raw[uint(1)] = _scaleX * xAxis.y;
 			raw[uint(2)] = _scaleX * xAxis.z;
@@ -398,7 +406,7 @@ package me.feng3d.core.base.data
 				rotationX -= 180;
 				rotationZ -= 180;
 			}
-			
+
 			_lookTarget = target;
 		}
 
@@ -412,3 +420,5 @@ package me.feng3d.core.base.data
 
 	}
 }
+
+

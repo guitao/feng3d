@@ -3,21 +3,27 @@ package me.feng3d.entities
 	import me.feng3d.arcane;
 	import me.feng3d.animators.IAnimator;
 	import me.feng3d.animators.vertex.VertexAnimator;
-	import me.feng3d.cameras.Camera3D;
 	import me.feng3d.core.base.Geometry;
 	import me.feng3d.core.base.IMaterialOwner;
 	import me.feng3d.core.base.subgeometry.SubGeometry;
 	import me.feng3d.core.base.subgeometry.VertexSubGeometry;
 	import me.feng3d.core.base.submesh.SubMesh;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
-	import me.feng3d.core.proxy.Stage3DProxy;
+	import me.feng3d.core.partition.node.EntityNode;
+	import me.feng3d.core.partition.node.MeshNode;
 	import me.feng3d.events.GeometryEvent;
+	import me.feng3d.events.MeshEvent;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 	import me.feng3d.library.assets.AssetType;
 	import me.feng3d.materials.MaterialBase;
 	import me.feng3d.utils.DefaultMaterialManager;
 	import me.feng3d.utils.GeomUtil;
 
 	use namespace arcane;
+
+	/**
+	 * 材质发生变化时抛出
+	 */
+	[Event(name = "materialChange", type = "me.feng3d.events.MeshEvent")]
 
 	/**
 	 * 网格
@@ -29,9 +35,11 @@ package me.feng3d.entities
 
 		protected var _geometry:Geometry;
 
-		protected var _material:MaterialBase;
+		protected var _materialSelf:MaterialBase;
 
 		protected var _animator:IAnimator;
+
+		private var _castsShadows:Boolean = true;
 
 		/**
 		 * 新建网格
@@ -46,6 +54,12 @@ package me.feng3d.entities
 			this.geometry = geometry || new Geometry();
 
 			this.material = material || DefaultMaterialManager.getDefaultMaterial();
+		}
+
+		/** 几何形状 */
+		public function get geometry():Geometry
+		{
+			return _geometry;
 		}
 
 		public function set geometry(value:Geometry):void
@@ -80,40 +94,55 @@ package me.feng3d.entities
 			invalidateBounds();
 		}
 
-		/** 几何形状 */
-		public function get geometry():Geometry
-		{
-			return _geometry;
-		}
-
-		/** 材质 */
+		/**
+		 * 渲染材质
+		 */
 		public function get material():MaterialBase
 		{
-			return _material;
+			return _materialSelf;
+		}
+
+		/**
+		 * 自身材质
+		 */
+		public function get materialSelf():MaterialBase
+		{
+			return _materialSelf;
 		}
 
 		public function set material(value:MaterialBase):void
 		{
-			_material = value;
-			var len:int = _subMeshes.length;
-			for (var i:int = 0; i < len; ++i)
-			{
-				var subMesh:SubMesh = _subMeshes[i];
-				subMesh.parentMaterial = material;
-			}
+			if (value == _materialSelf)
+				return;
+			if (_materialSelf)
+				_materialSelf.removeOwner(this);
+			_materialSelf = value;
+			if (_materialSelf)
+				_materialSelf.addOwner(this);
+
+			dispatchEvent(new MeshEvent(MeshEvent.MATERIAL_CHANGE));
 		}
 
+		/**
+		 * 源实体
+		 */
 		public function get sourceEntity():Entity
 		{
 			return this;
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override protected function updateBounds():void
 		{
 			_bounds.fromGeometry(geometry);
 			_boundsInvalid = false;
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override arcane function collidesBefore(shortestCollisionDistance:Number, findClosest:Boolean):Boolean
 		{
 			_pickingCollider.setLocalRay(_pickingCollisionVO.localRay);
@@ -136,6 +165,9 @@ package me.feng3d.entities
 			return _pickingCollisionVO.renderable != null;
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		public function get animator():IAnimator
 		{
 			return _animator;
@@ -144,7 +176,7 @@ package me.feng3d.entities
 		public function set animator(value:IAnimator):void
 		{
 			_animator = value;
-			
+
 			var i:int;
 			if (value is VertexAnimator)
 			{
@@ -158,12 +190,12 @@ package me.feng3d.entities
 					oldSubGeometry = oldGeometry.subGeometries[i] as SubGeometry;
 					newSubGeometry = new VertexSubGeometry();
 					GeomUtil.copyDataSubGeom(oldSubGeometry, newSubGeometry);
-					newSubGeometry.updateVertexData0(oldSubGeometry.getVAData(Context3DBufferTypeID.POSITION_VA_3).concat());
-					newSubGeometry.updateVertexData1(oldSubGeometry.getVAData(Context3DBufferTypeID.POSITION_VA_3).concat());
+					newSubGeometry.updateVertexData0(oldSubGeometry.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3).concat());
+					newSubGeometry.updateVertexData1(oldSubGeometry.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3).concat());
 					geometry.addSubGeometry(newSubGeometry);
 				}
 			}
-			
+
 			for (i = 0; i < subMeshes.length; i++)
 			{
 				var subMesh:SubMesh = subMeshes[i];
@@ -171,30 +203,47 @@ package me.feng3d.entities
 			}
 		}
 
+		/**
+		 * 子网格列表
+		 */
 		public function get subMeshes():Vector.<SubMesh>
 		{
 			return _subMeshes;
 		}
 
+		/**
+		 * 添加子网格包装子几何体
+		 * @param subGeometry		被添加的子几何体
+		 */
 		protected function addSubMesh(subGeometry:SubGeometry):void
 		{
 			var subMesh:SubMesh = new SubMesh(subGeometry, this, null);
 			var len:uint = _subMeshes.length;
 			subMesh._index = len;
 			_subMeshes[len] = subMesh;
+			invalidateBounds();
 		}
-		
+
+		/**
+		 * 处理几何体边界变化事件
+		 */
 		private function onGeometryBoundsInvalid(event:GeometryEvent):void
 		{
 			invalidateBounds();
 		}
 
+		/**
+		 * 处理子几何体添加事件
+		 */
 		private function onSubGeometryAdded(event:GeometryEvent):void
 		{
 			addSubMesh(event.subGeometry);
 			invalidateBounds();
 		}
 
+		/**
+		 * 处理子几何体移除事件
+		 */
 		private function onSubGeometryRemoved(event:GeometryEvent):void
 		{
 			var subMesh:SubMesh;
@@ -221,26 +270,37 @@ package me.feng3d.entities
 			--len;
 			for (; i < len; ++i)
 				_subMeshes[i]._index = i;
-			
+
 			invalidateBounds();
 		}
 
+		/**
+		 * Indicates whether or not the Mesh can cast shadows. Default value is <code>true</code>.
+		 */
+		public function get castsShadows():Boolean
+		{
+			return _castsShadows;
+		}
+
+		public function set castsShadows(value:Boolean):void
+		{
+			_castsShadows = value;
+		}
+
+		/**
+		 * @inheritDoc
+		 */
 		public override function get assetType():String
 		{
 			return AssetType.MESH;
 		}
 
-		override public function render(stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		/**
+		 * @inheritDoc
+		 */
+		override protected function createEntityPartitionNode():EntityNode
 		{
-			if (subMeshes == null)
-				return;
-//			trace("渲染"+name);
-			for (var i:int = 0; i < subMeshes.length; i++)
-			{
-				var subMesh:SubMesh = subMeshes[i];
-
-				subMesh.render(stage3DProxy, camera);
-			}
+			return new MeshNode(this);
 		}
 	}
 }

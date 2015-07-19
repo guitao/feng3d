@@ -1,7 +1,7 @@
 package me.feng3d.controllers
 {
 	import flash.geom.Vector3D;
-	
+
 	import me.feng3d.containers.ObjectContainer3D;
 	import me.feng3d.core.math.Matrix3DUtils;
 	import me.feng3d.entities.Entity;
@@ -18,7 +18,7 @@ package me.feng3d.controllers
 
 		protected var _upAxis:Vector3D = Vector3D.Y_AXIS;
 		private var _pos:Vector3D = new Vector3D();
-		
+
 		/**
 		 * 创建注视点控制器
 		 * @param targetObject 控制对象
@@ -41,14 +41,14 @@ package me.feng3d.controllers
 		{
 			return _upAxis;
 		}
-		
+
 		public function set upAxis(upAxis:Vector3D):void
 		{
 			_upAxis = upAxis;
-			
+
 			notifyUpdate();
 		}
-		
+
 		/**
 		 * 被注视目标所在位置
 		 */
@@ -97,11 +97,17 @@ package me.feng3d.controllers
 			notifyUpdate();
 		}
 
+		/**
+		 * 处理注视目标变化事件
+		 */
 		private function onLookAtObjectChanged(event:Object3DEvent):void
 		{
 			notifyUpdate();
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override public function update():void
 		{
 			if (_targetObject)
@@ -127,7 +133,7 @@ package me.feng3d.controllers
 							Matrix3DUtils.getTranslation(_lookAtObject.transform, _pos);
 						}
 					}
-					else if (_lookAtObject.scene3D)
+					else if (_lookAtObject.scene)
 					{
 						_pos.x = _lookAtObject.scenePosition.x;
 						_pos.y = _lookAtObject.scenePosition.y;

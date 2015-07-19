@@ -4,13 +4,13 @@ package me.feng3d.entities
 	import me.feng3d.core.base.subgeometry.SubGeometry;
 	import me.feng3d.library.assets.AssetType;
 	import me.feng3d.materials.SkyBoxMaterial;
-	import me.feng3d.textures.CubeTextureBase;
+	import me.feng3d.textures.CubeTextureProxyBase;
 
 	use namespace arcane;
 
 	/**
-	 * 天空盒类用于渲染的天空场景。
-	 * 总是被认为是静态的,在无穷远处,并且总是集中在相机的位置和大小符合在相机的平截头体,
+	 * 天空盒类用于渲染的场景中的天空。
+	 * 总是被认为是静态的,在无穷远处,并且总是集中在相机的位置和大小符合在相机的视锥体,
 	 * 确保天空盒总是尽可能大而不被裁剪。
 	 * @author warden_feng 2014-7-11
 	 */
@@ -18,7 +18,7 @@ package me.feng3d.entities
 	{
 		private var subGeometry:SubGeometry;
 
-		public function SkyBox(cubeMap:CubeTextureBase)
+		public function SkyBox(cubeMap:CubeTextureProxyBase)
 		{
 			super();
 

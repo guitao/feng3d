@@ -1,12 +1,12 @@
 package me.feng3d.animators.base
 {
 	import flash.utils.Dictionary;
-	
+
+	import me.feng.error.AbstractClassError;
+	import me.feng.error.AbstractMethodError;
 	import me.feng3d.arcane;
 	import me.feng3d.animators.base.node.AnimationNodeBase;
 	import me.feng3d.core.base.Context3DBufferOwner;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.errors.AbstractMethodError;
 	import me.feng3d.errors.AnimationSetError;
 	import me.feng3d.fagal.params.ShaderParams;
 	import me.feng3d.library.assets.AssetType;
@@ -35,6 +35,7 @@ package me.feng3d.animators.base
 		public function AnimationSetBase()
 		{
 			super();
+			AbstractClassError.check(this);
 		}
 
 		/**
@@ -80,27 +81,37 @@ package me.feng3d.animators.base
 			return _animationDictionary[animationName] != null;
 		}
 
+		/**
+		 * 重置使用GPU
+		 */
 		public function resetGPUCompatibility():void
 		{
 			_usesCPU = false;
 		}
 
+		/**
+		 * 取消使用GPU
+		 */
 		public function cancelGPUCompatibility():void
 		{
 			_usesCPU = true;
 		}
 
 		/**
-		 * 激活(设置参数)
-		 * @param shaderParams
-		 * @param stage3DProxy
-		 * @param pass
+		 * 激活
+		 * @param shaderParams	渲染参数
+		 * @param stage3DProxy	3d舞台代理
+		 * @param pass			渲染通道
+		 * @throws	me.feng.error.AbstractMethodError
 		 */
-		arcane function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy, pass:MaterialPassBase):void
+		arcane function activate(shaderParams:ShaderParams, pass:MaterialPassBase):void
 		{
 			throw new AbstractMethodError();
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		public function get assetType():String
 		{
 			return AssetType.ANIMATION_SET;

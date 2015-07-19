@@ -1,16 +1,19 @@
 package me.feng3d.bounds
 {
+	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
-	
+
+	import me.feng.error.AbstractClassError;
+	import me.feng.error.AbstractMethodError;
 	import me.feng3d.core.base.Geometry;
 	import me.feng3d.core.base.subgeometry.SubGeometry;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
+	import me.feng3d.core.math.Plane3D;
 	import me.feng3d.core.math.Ray3D;
-	import me.feng3d.errors.AbstractMethodError;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 	import me.feng3d.primitives.WireframePrimitiveBase;
 
 	/**
-	 * 边界数据
+	 * 包围盒基类
 	 * @author warden_feng 2014-4-27
 	 */
 	public class BoundingVolumeBase
@@ -20,12 +23,18 @@ package me.feng3d.bounds
 		/** 最大坐标 */
 		protected var _max:Vector3D;
 
+		protected var _aabbPointsDirty:Boolean = true;
 		protected var _boundingRenderable:WireframePrimitiveBase;
 
+		/**
+		 * 创建包围盒
+		 */
 		public function BoundingVolumeBase()
 		{
 			_min = new Vector3D();
 			_max = new Vector3D();
+
+			AbstractClassError.check(this);
 		}
 
 		/**
@@ -43,7 +52,7 @@ package me.feng3d.bounds
 		}
 
 		/**
-		 * 注销渲染实体
+		 * 销毁渲染实体
 		 */
 		public function disposeRenderable():void
 		{
@@ -79,7 +88,7 @@ package me.feng3d.bounds
 			if (numSubGeoms > 0)
 			{
 				var subGeom:SubGeometry = subGeoms[0];
-				var vertices:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeID.POSITION_VA_3);
+				var vertices:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3);
 				var i:uint = 0;
 				minX = maxX = vertices[i];
 				minY = maxY = vertices[i + 1];
@@ -89,10 +98,10 @@ package me.feng3d.bounds
 				while (j < numSubGeoms)
 				{
 					subGeom = subGeoms[j++];
-					vertices = subGeom.getVAData(Context3DBufferTypeID.POSITION_VA_3);
+					vertices = subGeom.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3);
 					var vertexDataLen:uint = vertices.length;
 					i = 0;
-					var stride:uint = subGeom.getVALen(Context3DBufferTypeID.POSITION_VA_3);
+					var stride:uint = subGeom.getVALen(Context3DBufferTypeIDCommon.POSITION_VA_3);
 
 					while (i < vertexDataLen)
 					{
@@ -143,10 +152,10 @@ package me.feng3d.bounds
 		}
 
 		/**
-		 * 检测射线是否与边界碰撞
-		 * @param ray3D
-		 * @param targetNormal
-		 * @return
+		 * 检测射线是否与边界交叉
+		 * @param ray3D						射线
+		 * @param targetNormal				交叉点法线值
+		 * @return							射线起点到交点距离
 		 */
 		public function rayIntersection(ray3D:Ray3D, targetNormal:Vector3D):Number
 		{
@@ -154,13 +163,44 @@ package me.feng3d.bounds
 		}
 
 		/**
-		 * 是否包含点
-		 * @param position 某点
-		 * @return
+		 * 检测是否包含指定点
+		 * @param position 		被检测点
+		 * @return				true：包含指定点
 		 */
 		public function containsPoint(position:Vector3D):Boolean
 		{
 			return false;
+		}
+
+		/**
+		 * 测试是否出现在摄像机视锥体内
+		 * @param planes 		视锥体面向量
+		 * @param numPlanes		面数
+		 * @return 				true：出现在视锥体内
+		 */
+		public function isInFrustum(planes:Vector.<Plane3D>, numPlanes:int):Boolean
+		{
+			throw new AbstractMethodError();
+		}
+
+		/**
+		 * 对包围盒进行变换
+		 * @param bounds		包围盒
+		 * @param matrix		变换矩阵
+		 */
+		public function transformFrom(bounds:BoundingVolumeBase, matrix:Matrix3D):void
+		{
+			throw new AbstractMethodError();
+		}
+
+		/**
+		 * 从给出的球体设置边界
+		 * @param center 		球心坐标
+		 * @param radius 		球体半径
+		 */
+		public function fromSphere(center:Vector3D, radius:Number):void
+		{
+			fromExtremes(center.x - radius, center.y - radius, center.z - radius, center.x + radius, center.y + radius, center.z + radius);
 		}
 	}
 }

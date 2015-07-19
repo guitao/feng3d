@@ -1,10 +1,9 @@
 package me.feng3d.animators
 {
+	import me.feng3d.animators.base.AnimationSetBase;
 	import me.feng3d.cameras.Camera3D;
 	import me.feng3d.core.base.IContext3DBufferOwner;
-	import me.feng3d.core.base.IRenderable;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.animators.base.AnimationSetBase;
+	import me.feng3d.core.base.renderable.IRenderable;
 
 	/**
 	 * 动画接口
@@ -23,8 +22,8 @@ package me.feng3d.animators
 		 * @param renderable			渲染实体
 		 * @param vertexConstantOffset
 		 * @param vertexStreamOffset
-		 * @param camera				照相机
+		 * @param camera				摄像机
 		 */
-		function setRenderState(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void;
+		function setRenderState(renderable:IRenderable, camera:Camera3D):void;
 	}
 }

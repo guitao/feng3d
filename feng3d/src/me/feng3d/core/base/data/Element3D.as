@@ -2,7 +2,7 @@ package me.feng3d.core.base.data
 {
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
-	
+
 	import me.feng.events.FEventDispatcher;
 	import me.feng3d.core.math.MathConsts;
 	import me.feng3d.core.math.Matrix3DUtils;
@@ -93,7 +93,7 @@ package me.feng3d.core.base.data
 
 		/**
 		 * 相对父容器的X坐标
-		 */		
+		 */
 		public function get x():Number
 		{
 			return _x;
@@ -111,7 +111,7 @@ package me.feng3d.core.base.data
 
 		/**
 		 * 相对父容器的Y坐标
-		 */	
+		 */
 		public function get y():Number
 		{
 			return _y;
@@ -129,7 +129,7 @@ package me.feng3d.core.base.data
 
 		/**
 		 * 相对父容器的Z坐标
-		 */	
+		 */
 		public function get z():Number
 		{
 			return _z;
@@ -337,7 +337,7 @@ package me.feng3d.core.base.data
 		}
 
 		/**
-		 * Defines the local point around which the object rotates.
+		 * 中心点坐标（本地对象旋转点）
 		 */
 		public function get pivotPoint():Vector3D
 		{
@@ -356,7 +356,7 @@ package me.feng3d.core.base.data
 		}
 
 		/**
-		 * Defines the position of the 3d object, relative to the local coordinates of the parent <code>ObjectContainer3D</code>.
+		 * 获取在父容器中的坐标
 		 */
 		public function get position():Vector3D
 		{
@@ -372,19 +372,6 @@ package me.feng3d.core.base.data
 			_z = value.z;
 
 			invalidatePosition();
-		}
-
-		/**
-		 * Defines the position of the 3d object, relative to the local coordinates of the parent <code>ObjectContainer3D</code>.
-		 * @param v the destination Vector3D
-		 * @return
-		 */
-		public function getPosition(v:Vector3D = null):Vector3D
-		{
-			if (!v)
-				v = new Vector3D();
-			transform.copyColumnTo(3, v);
-			return v;
 		}
 
 		/**
@@ -415,7 +402,7 @@ package me.feng3d.core.base.data
 		}
 
 		/**
-		 * Invalidates the transformation matrix, causing it to be updated upon the next request
+		 * 使变换矩阵失效
 		 */
 		public function invalidateTransform():void
 		{
@@ -438,7 +425,7 @@ package me.feng3d.core.base.data
 
 		/**
 		 * 更新变换矩阵
-		 */		
+		 */
 		protected function updateTransform():void
 		{
 			_pos.x = _x;
@@ -481,7 +468,7 @@ package me.feng3d.core.base.data
 
 		/**
 		 * 使中心点无效
-		 */		
+		 */
 		protected function invalidatePivot():void
 		{
 			_pivotZero = (_pivotPoint.x == 0) && (_pivotPoint.y == 0) && (_pivotPoint.z == 0);
@@ -493,10 +480,10 @@ package me.feng3d.core.base.data
 		 * 监听事件
 		 * @param type 事件类型
 		 * @param listener 回调函数
-		 */		
-		override public function addEventListener(type:String, listener:Function):void
+		 */
+		override public function addEventListener(type:String, listener:Function, useCapture:Boolean = false, priority:int = 0, useWeakReference:Boolean = false):void
 		{
-			super.addEventListener(type, listener);
+			super.addEventListener(type, listener, useCapture, priority, useWeakReference);
 			switch (type)
 			{
 				case Object3DEvent.POSITION_CHANGED:
@@ -508,6 +495,9 @@ package me.feng3d.core.base.data
 				case Object3DEvent.SCALE_CHANGED:
 					_listenToRotationChanged = true;
 					break;
+				case Object3DEvent.TRANSFORM_CHANGED:
+					_listenToTransformChanged = true;
+					break;
 			}
 		}
 
@@ -515,10 +505,10 @@ package me.feng3d.core.base.data
 		 * 移除事件
 		 * @param type 事件类型
 		 * @param listener 回调函数
-		 */		
-		override public function removeEventListener(type:String, listener:Function):void
+		 */
+		override public function removeEventListener(type:String, listener:Function, useCapture:Boolean = false):void
 		{
-			super.removeEventListener(type, listener);
+			super.removeEventListener(type, listener, useCapture);
 
 			if (hasEventListener(type))
 				return;
@@ -534,12 +524,15 @@ package me.feng3d.core.base.data
 				case Object3DEvent.SCALE_CHANGED:
 					_listenToScaleChanged = false;
 					break;
+				case Object3DEvent.TRANSFORM_CHANGED:
+					_listenToTransformChanged = false;
+					break;
 			}
 		}
 
 		/**
 		 * 使旋转角度无效
-		 */	
+		 */
 		protected function invalidateRotation():void
 		{
 			if (_rotationDirty)
@@ -555,7 +548,7 @@ package me.feng3d.core.base.data
 
 		/**
 		 * 抛出旋转事件
-		 */	
+		 */
 		private function notifyRotationChanged():void
 		{
 			if (!_rotationChanged)
@@ -566,7 +559,7 @@ package me.feng3d.core.base.data
 
 		/**
 		 * 使缩放无效
-		 */	
+		 */
 		protected function invalidateScale():void
 		{
 			if (_scaleDirty)

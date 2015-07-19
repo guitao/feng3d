@@ -2,8 +2,15 @@ package me.feng3d.lights
 {
 	import flash.geom.Vector3D;
 
+	import me.feng3d.bounds.BoundingVolumeBase;
+	import me.feng3d.bounds.NullBounds;
+	import me.feng3d.core.partition.node.DirectionalLightNode;
+	import me.feng3d.core.partition.node.EntityNode;
+	import me.feng3d.lights.shadowmaps.DirectionalShadowMapper;
+	import me.feng3d.lights.shadowmaps.ShadowMapperBase;
+
 	/**
-	 *
+	 * 方向灯光
 	 * @author warden_feng 2014-9-11
 	 */
 	public class DirectionalLight extends LightBase
@@ -12,6 +19,12 @@ package me.feng3d.lights
 		private var _tmpLookAt:Vector3D;
 		private var _sceneDirection:Vector3D;
 
+		/**
+		 * 创建一个方向灯光
+		 * @param xDir		方向X值
+		 * @param yDir		方向Y值
+		 * @param zDir		方向Z值
+		 */
 		public function DirectionalLight(xDir:Number = 0, yDir:Number = -1, zDir:Number = 1)
 		{
 			super();
@@ -51,11 +64,43 @@ package me.feng3d.lights
 			return _sceneDirection;
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override protected function updateSceneTransform():void
 		{
 			super.updateSceneTransform();
 			sceneTransform.copyColumnTo(2, _sceneDirection);
 			_sceneDirection.normalize();
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		override protected function createEntityPartitionNode():EntityNode
+		{
+			return new DirectionalLightNode(this);
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		override protected function getDefaultBoundingVolume():BoundingVolumeBase
+		{
+			// 方向光源并没有坐标，因此永远在3D场景中
+			return new NullBounds();
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		override protected function updateBounds():void
+		{
+		}
+
+		override protected function createShadowMapper():ShadowMapperBase
+		{
+			return new DirectionalShadowMapper();
 		}
 	}
 }

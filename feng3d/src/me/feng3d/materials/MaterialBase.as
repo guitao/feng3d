@@ -1,17 +1,18 @@
 package me.feng3d.materials
 {
 	import flash.display.BlendMode;
-	
+	import flash.events.Event;
+
+	import me.feng.events.FEventDispatcher;
 	import me.feng3d.arcane;
 	import me.feng3d.animators.base.AnimationSetBase;
 	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.base.Context3DBufferOwner;
-	import me.feng3d.core.base.IRenderable;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.core.base.IMaterialOwner;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.library.assets.AssetType;
 	import me.feng3d.library.assets.IAsset;
 	import me.feng3d.materials.lightpickers.LightPickerBase;
+	import me.feng3d.passes.DepthMapPass;
 	import me.feng3d.passes.MaterialPassBase;
 
 	use namespace arcane;
@@ -20,10 +21,25 @@ package me.feng3d.materials
 	 * 材质基类
 	 * @author warden_feng 2014-4-15
 	 */
-	public class MaterialBase extends Context3DBufferOwner implements IAsset
+	public class MaterialBase extends FEventDispatcher implements IAsset
 	{
+		/**
+		 * 唯一编号
+		 */
+		arcane var _uniqueId:uint;
+
+		/**
+		 * 渲染序列编号
+		 */
+		arcane var _renderOrderId:int;
+
 		private var _bothSides:Boolean;
+
+		private var _owners:Vector.<IMaterialOwner>;
+
 		private var _blendMode:String = BlendMode.NORMAL;
+
+		protected var _numPasses:uint;
 
 		protected var _mipmap:Boolean = true;
 		protected var _smooth:Boolean = true;
@@ -31,11 +47,26 @@ package me.feng3d.materials
 
 		protected var _passes:Vector.<MaterialPassBase>;
 
+		protected var _depthPass:DepthMapPass;
+
 		protected var _lightPicker:LightPickerBase;
 
+		/**
+		 * 创建一个材质基类
+		 */
 		public function MaterialBase()
 		{
+			_owners = new Vector.<IMaterialOwner>();
 			_passes = new Vector.<MaterialPassBase>();
+			_depthPass = new DepthMapPass();
+		}
+
+		/**
+		 * 深度渲染通道
+		 */
+		public function get depthPass():DepthMapPass
+		{
+			return _depthPass;
 		}
 
 		/**
@@ -50,12 +81,13 @@ package me.feng3d.materials
 		{
 			_bothSides = value;
 
-			for each (var pass:MaterialPassBase in _passes)
-			{
-				pass.bothSides = value;
-			}
+			for (var i:int = 0; i < _numPasses; ++i)
+				_passes[i].bothSides = value;
 		}
 
+		/**
+		 * 是否需要混合
+		 */
 		public function get requiresBlending():Boolean
 		{
 			return _blendMode != BlendMode.NORMAL;
@@ -75,34 +107,28 @@ package me.feng3d.materials
 		}
 
 		/**
-		 * 激活通道
-		 * @param shaderParams 渲染参数
-		 * @param stage3DProxy
-		 * @param camera
+		 * 渲染通道
+		 * @param renderable 		可渲染对象
+		 * @param stage3DProxy 		stage3d代理
+		 * @param camera 			摄像机
 		 */
-		arcane function activatePass(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		arcane function renderPass(index:uint, renderable:IRenderable, camera:Camera3D):void
 		{
-			for each (var pass:MaterialPassBase in _passes)
-			{
-				pass.activate(shaderParams, stage3DProxy, camera);
-			}
+			var pass:MaterialPassBase = _passes[index];
+			if (renderable.animator)
+				pass.updateAnimationState(renderable, camera);
+
+			pass.render(renderable, camera);
 		}
 
 		/**
-		 * 渲染通道
-		 * @param renderable 可渲染对象
-		 * @param stage3DProxy stage3d代理
-		 * @param camera 照相机
+		 * 渲染深度通道
+		 * @param renderable		可渲染对象
+		 * @param camera			摄像机
 		 */
-		arcane function renderPass(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		arcane function renderDepth(renderable:IRenderable, camera:Camera3D):void
 		{
-			for each (var pass:MaterialPassBase in _passes)
-			{
-				if (renderable.animator)
-					pass.updateAnimationState(renderable, stage3DProxy, camera);
-
-				pass.render(renderable, stage3DProxy, camera);
-			}
+			_depthPass.render(renderable, camera);
 		}
 
 		/**
@@ -163,9 +189,32 @@ package me.feng3d.materials
 		protected function addPass(pass:MaterialPassBase):void
 		{
 			_passes.push(pass);
-			addChildBufferOwner(pass);
-			
+			_numPasses = _passes.length;
+
+			pass.mipmap = _mipmap;
+			pass.smooth = _smooth;
+			pass.repeat = _repeat;
 			pass.bothSides = _bothSides;
+			pass.addEventListener(Event.CHANGE, onPassChange);
+			invalidatePasses(null);
+		}
+
+		/**
+		 * 获取渲染通道
+		 * @param index		渲染通道索引
+		 * @return			返回指定索引处渲染通道
+		 */
+		public function getPass(index:int):MaterialPassBase
+		{
+			return _passes[index];
+		}
+
+		/**
+		 * 处理通道变化事件
+		 */
+		private function onPassChange(event:Event):void
+		{
+
 		}
 
 		/**
@@ -175,9 +224,11 @@ package me.feng3d.materials
 		protected function removePass(pass:MaterialPassBase):void
 		{
 			_passes.splice(_passes.indexOf(pass), 1);
-			removeChildBufferOwner(pass);
 		}
 
+		/**
+		 * 动画集合
+		 */
 		public function set animationSet(value:AnimationSetBase):void
 		{
 			for each (var pass:MaterialPassBase in _passes)
@@ -186,6 +237,9 @@ package me.feng3d.materials
 			}
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		public function get assetType():String
 		{
 			return AssetType.MATERIAL;
@@ -219,6 +273,70 @@ package me.feng3d.materials
 			{
 				if (pass != triggerPass)
 					pass.invalidateShaderProgram();
+			}
+		}
+
+		/**
+		 * 渲染通道数量
+		 */
+		arcane function get numPasses():uint
+		{
+			return _numPasses;
+		}
+
+		/**
+		 * 更新材质
+		 */
+		arcane function updateMaterial():void
+		{
+
+		}
+
+		/**
+		 * 清除通道渲染状态
+		 * @param index				通道索引
+		 * @param stage3DProxy		3D舞台代理
+		 */
+		arcane function deactivatePass(index:uint):void
+		{
+			_passes[index].deactivate();
+		}
+
+		/**
+		 * 停用材质的最后一个通道
+		 */
+		arcane function deactivate():void
+		{
+			_passes[_numPasses - 1].deactivate();
+		}
+
+		/**
+		 * 清除深度渲染状态
+		 */
+		arcane function deactivateForDepth():void
+		{
+			_depthPass.deactivate();
+		}
+
+		/**
+		 * 添加材质拥有者
+		 * @param owner		材质拥有者
+		 */
+		arcane function addOwner(owner:IMaterialOwner):void
+		{
+			_owners.push(owner);
+		}
+
+		/**
+		 * 移除材质拥有者
+		 * @param owner		材质拥有者
+		 */
+		arcane function removeOwner(owner:IMaterialOwner):void
+		{
+			_owners.splice(_owners.indexOf(owner), 1);
+			if (_owners.length == 0)
+			{
+				invalidatePasses(null);
 			}
 		}
 	}

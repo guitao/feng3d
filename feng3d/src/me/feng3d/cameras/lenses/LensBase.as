@@ -3,14 +3,16 @@ package me.feng3d.cameras.lenses
 	import flash.geom.Matrix3D;
 	import flash.geom.Rectangle;
 	import flash.geom.Vector3D;
-	
+
+	import me.feng.error.AbstractClassError;
+	import me.feng.error.AbstractMethodError;
 	import me.feng.events.FEventDispatcher;
+	import me.feng3d.arcane;
 	import me.feng3d.core.math.Matrix3DUtils;
-	import me.feng3d.errors.AbstractMethodError;
 	import me.feng3d.events.LensEvent;
 
 	/**
-	 * 照相机镜头
+	 * 摄像机镜头
 	 * @author warden_feng 2014-10-14
 	 */
 	public class LensBase extends FEventDispatcher
@@ -29,11 +31,13 @@ package me.feng3d.cameras.lenses
 		private var _unprojectionInvalid:Boolean = true;
 
 		/**
-		 * 创建一个照相机镜头
+		 * 创建一个摄像机镜头
 		 */
 		public function LensBase()
 		{
 			_matrix = new Matrix3D();
+
+			AbstractClassError.check(this);
 		}
 
 		/**
@@ -97,6 +101,22 @@ package me.feng3d.cameras.lenses
 			if (value == _far)
 				return;
 			_far = value;
+			invalidateMatrix();
+		}
+
+		/**
+		 * 视窗缩放比例(width/height)，在渲染器中设置
+		 */
+		arcane function get aspectRatio():Number
+		{
+			return _aspectRatio;
+		}
+
+		arcane function set aspectRatio(value:Number):void
+		{
+			if (_aspectRatio == value || (value * 0) != 0)
+				return;
+			_aspectRatio = value;
 			invalidateMatrix();
 		}
 

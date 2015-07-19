@@ -2,6 +2,9 @@ package me.feng3d.parsers.utils
 {
 	import flash.utils.ByteArray;
 
+	/**
+	 * 解析工具类
+	 */
 	public class ParserUtil
 	{
 		/**

@@ -5,7 +5,7 @@ package me.feng3d.cameras.lenses
 	import me.feng3d.core.math.Matrix3DUtils;
 
 	/**
-	 * 透视照相机镜头
+	 * 透视摄像机镜头
 	 * @author warden_feng 2014-10-14
 	 */
 	public class PerspectiveLens extends LensBase
@@ -18,7 +18,7 @@ package me.feng3d.cameras.lenses
 		private var _coordinateSystem:uint;
 
 		/**
-		 * 创建一个透视照相机镜头
+		 * 创建一个透视摄像机镜头
 		 * @param fieldOfView 视野
 		 * @param coordinateSystem 坐标系统类型
 		 */

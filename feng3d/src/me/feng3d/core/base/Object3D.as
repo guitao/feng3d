@@ -1,14 +1,16 @@
 package me.feng3d.core.base
 {
+	import flash.events.Event;
 	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
-	
-	import me.feng.events.FEvent;
+
 	import me.feng3d.arcane;
 	import me.feng3d.containers.ObjectContainer3D;
 	import me.feng3d.containers.Scene3D;
+	import me.feng3d.controllers.ControllerBase;
 	import me.feng3d.core.base.data.Transform3D;
 	import me.feng3d.core.math.Matrix3DUtils;
+	import me.feng3d.core.partition.Partition3D;
 	import me.feng3d.events.MouseEvent3D;
 	import me.feng3d.events.Object3DEvent;
 
@@ -27,6 +29,9 @@ package me.feng3d.core.base
 	 */
 	public class Object3D extends Transform3D
 	{
+		/** @private */
+		arcane var _controller:ControllerBase;
+
 		protected var _parent:ObjectContainer3D;
 
 		protected var _sceneTransform:Matrix3D = new Matrix3D();
@@ -38,13 +43,21 @@ package me.feng3d.core.base
 		private var _scenePosition:Vector3D = new Vector3D();
 		private var _scenePositionDirty:Boolean = true;
 
+		arcane var _explicitPartition:Partition3D; // what the user explicitly set as the partition
+		protected var _implicitPartition:Partition3D; // what is inherited from the parents if it doesn't have its own explicitPartition
+
 		private var _visible:Boolean = true;
 
 		private var _sceneTransformChanged:Object3DEvent;
 
 		private var _listenToSceneTransformChanged:Boolean;
 
-		arcane var _scene3D:Scene3D;
+		arcane var _scene:Scene3D;
+
+		protected var _zOffset:int = 0;
+
+		private var _explicitVisibility:Boolean = true;
+		private var _implicitVisibility:Boolean = true;
 
 		/**
 		 * 创建3D对象
@@ -55,39 +68,38 @@ package me.feng3d.core.base
 		}
 
 		/**
-		 * 显示对象的场景
+		 * 场景
 		 */
-		public function get scene3D():Scene3D
+		public function get scene():Scene3D
 		{
-			return _scene3D;
+			return _scene;
 		}
 
-		/**
-		 * 设置对象所在场景
-		 */
-		arcane function setScene3D(scene:Scene3D):void
+		public function set scene(value:Scene3D):void
 		{
-			if (_scene3D != scene)
+			if (_scene != value)
 			{
-				if (_scene3D)
-					_scene3D.removedObject3d(this);
-				_scene3D = scene;
-				if (_scene3D)
-					_scene3D.addedObject3d(this);
+				if (_scene)
+					_scene.removedObject3d(this);
+				_scene = value;
+				if (_scene)
+					_scene.addedObject3d(this);
 			}
 		}
 
+		/**
+		 * 克隆3D对象
+		 */
 		public function clone():Object3D
 		{
 			var clone:Object3D = new Object3D();
 			clone.pivotPoint = pivotPoint;
 			clone.transform = transform;
-			// todo: implement for all subtypes
 			return clone;
 		}
 
 		/**
-		 * 从世界转换到模型空间的逆矩阵
+		 * 场景变换逆矩阵，场景空间转模型空间
 		 */
 		public function get inverseSceneTransform():Matrix3D
 		{
@@ -102,7 +114,7 @@ package me.feng3d.core.base
 		}
 
 		/**
-		 * 对象场景转换矩阵
+		 * 场景变换矩阵，模型空间转场景空间
 		 */
 		public function get sceneTransform():Matrix3D
 		{
@@ -112,8 +124,7 @@ package me.feng3d.core.base
 		}
 
 		/**
-		 * 更新场景转换矩阵
-		 * Updates the scene transformation matrix.
+		 * 更新场景变换矩阵
 		 */
 		protected function updateSceneTransform():void
 		{
@@ -129,7 +140,7 @@ package me.feng3d.core.base
 		}
 
 		/**
-		 * 当状态变换矩阵无效时 把场景变换矩阵标记为脏数据
+		 * 使变换矩阵失效，场景变换矩阵也将失效
 		 */
 		override public function invalidateTransform():void
 		{
@@ -140,7 +151,7 @@ package me.feng3d.core.base
 
 		/**
 		 * 场景变化失效
-		 */		
+		 */
 		protected function invalidateSceneTransform():void
 		{
 			_sceneTransformDirty = true;
@@ -150,7 +161,7 @@ package me.feng3d.core.base
 
 		/**
 		 * 通知场景变换改变
-		 */		
+		 */
 		private function notifySceneTransformChange():void
 		{
 			if (_sceneTransformDirty)
@@ -245,7 +256,10 @@ package me.feng3d.core.base
 			return localDirection;
 		}
 
-		override public function dispatchEvent(event:FEvent):Boolean
+		/**
+		 * @inheritDoc
+		 */
+		override public function dispatchEvent(event:Event):Boolean
 		{
 			if (event is MouseEvent3D && parent && !parent.ancestorsAllowMouseEnabled)
 			{
@@ -259,7 +273,7 @@ package me.feng3d.core.base
 		}
 
 		/**
-		 * 是否隐藏
+		 * 是否可见
 		 */
 		public function get visible():Boolean
 		{
@@ -280,9 +294,12 @@ package me.feng3d.core.base
 			return visible && ((parent is Scene3D) ? true : (parent ? parent.sceneVisible : false));
 		}
 
-		override public function addEventListener(type:String, listener:Function):void
+		/**
+		 * @inheritDoc
+		 */
+		override public function addEventListener(type:String, listener:Function, useCapture:Boolean = false, priority:int = 0, useWeakReference:Boolean = false):void
 		{
-			super.addEventListener(type, listener);
+			super.addEventListener(type, listener, useCapture, priority, useWeakReference);
 
 			switch (type)
 			{
@@ -295,7 +312,10 @@ package me.feng3d.core.base
 			}
 		}
 
-		override public function removeEventListener(type:String, listener:Function):void
+		/**
+		 * @inheritDoc
+		 */
+		override public function removeEventListener(type:String, listener:Function, useCapture:Boolean = false):void
 		{
 			super.removeEventListener(type, listener);
 
@@ -313,5 +333,56 @@ package me.feng3d.core.base
 			}
 		}
 
+		/**
+		 * 空间分区
+		 */
+		public function get partition():Partition3D
+		{
+			return _explicitPartition;
+		}
+
+		public function set partition(value:Partition3D):void
+		{
+			_explicitPartition = value;
+
+			implicitPartition = value ? value : (_parent ? _parent.implicitPartition : null);
+		}
+
+		/**
+		 * 隐式空间分区
+		 */
+		arcane function get implicitPartition():Partition3D
+		{
+			return _implicitPartition;
+		}
+
+		arcane function set implicitPartition(value:Partition3D):void
+		{
+			if (value == _implicitPartition)
+				return;
+
+			_implicitPartition = value;
+		}
+
+		/**
+		 * 是否可见
+		 */
+		arcane function get isVisible():Boolean
+		{
+			return _implicitVisibility && _explicitVisibility;
+		}
+
+		/**
+		 * Z偏移值
+		 */
+		public function get zOffset():int
+		{
+			return _zOffset;
+		}
+
+		public function set zOffset(value:int):void
+		{
+			_zOffset = value;
+		}
 	}
 }

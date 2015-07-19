@@ -1,11 +1,12 @@
 package me.feng3d.materials.methods
 {
 	import me.feng3d.arcane;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
 	import me.feng3d.core.buffer.context3d.FCVectorBuffer;
 	import me.feng3d.core.buffer.context3d.FSBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDLight;
 	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.params.ShaderParamsCommon;
+	import me.feng3d.fagal.params.ShaderParamsLight;
 	import me.feng3d.textures.Texture2DBase;
 
 	use namespace arcane;
@@ -66,7 +67,7 @@ package me.feng3d.materials.methods
 				invalidateShaderProgram();
 			}
 			_texture = value;
-			markBufferDirty(Context3DBufferTypeID.SPECULARTEXTURE_FS);
+			markBufferDirty(Context3DBufferTypeIDLight.SPECULARTEXTURE_FS);
 		}
 
 		/**
@@ -92,8 +93,8 @@ package me.feng3d.materials.methods
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.SPECULARDATA_FC_VECTOR, FCVectorBuffer, updateSpecularDataBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.SPECULARTEXTURE_FS, FSBuffer, updateSpecularTextureBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.SPECULARDATA_FC_VECTOR, updateSpecularDataBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.SPECULARTEXTURE_FS, updateSpecularTextureBuffer);
 		}
 
 		private function updateSpecularDataBuffer(_specularDataBuffer:FCVectorBuffer):void
@@ -109,17 +110,20 @@ package me.feng3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy):void
+		override arcane function activate(shaderParams:ShaderParams):void
 		{
-			shaderParams.needsUV += _texture != null ? 1 : 0;
-			shaderParams.needsNormals += shaderParams.numLights > 0 ? 1 : 0;
-			shaderParams.needsViewDir += shaderParams.numLights > 0 ? 1 : 0;
+			//通用渲染参数
+			var common:ShaderParamsCommon = shaderParams.getComponent(ShaderParamsCommon.NAME);
+			var shaderParamsLight:ShaderParamsLight = shaderParams.getComponent(ShaderParamsLight.NAME);
 
-			shaderParams.usingSpecularMethod += 1;
+			common.needsUV += _texture != null ? 1 : 0;
+			shaderParamsLight.needsNormals += shaderParamsLight.numLights > 0 ? 1 : 0;
+			shaderParamsLight.needsViewDir += shaderParamsLight.numLights > 0 ? 1 : 0;
 
-			shaderParams.hasSpecularTexture = _texture != null;
+			shaderParamsLight.usingSpecularMethod += 1;
+			shaderParamsLight.hasSpecularTexture = _texture != null;
 
-			shaderParams.addSampleFlags(Context3DBufferTypeID.SPECULARTEXTURE_FS, _texture);
+			common.addSampleFlags(Context3DBufferTypeIDLight.SPECULARTEXTURE_FS, _texture);
 		}
 
 		private function updateSpecular():void

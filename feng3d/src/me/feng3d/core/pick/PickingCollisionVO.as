@@ -3,7 +3,7 @@ package me.feng3d.core.pick
 	import flash.geom.Point;
 	import flash.geom.Vector3D;
 
-	import me.feng3d.core.base.IRenderable;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.math.Ray3D;
 	import me.feng3d.entities.Entity;
 

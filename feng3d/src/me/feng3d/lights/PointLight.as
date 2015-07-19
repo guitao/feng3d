@@ -1,11 +1,15 @@
 package me.feng3d.lights
 {
+	import flash.geom.Vector3D;
+
 	import me.feng3d.arcane;
+	import me.feng3d.core.partition.node.EntityNode;
+	import me.feng3d.core.partition.node.PointLightNode;
 
 	use namespace arcane;
 
 	/**
-	 * 点光源
+	 * 点灯光
 	 * @author warden_feng 2014-10-9
 	 */
 	public class PointLight extends LightBase
@@ -60,5 +64,25 @@ package me.feng3d.lights
 			_fallOffFactor = 1 / (_fallOff * _fallOff - _radius * _radius);
 			invalidateBounds();
 		}
+
+		/**
+		 * @inheritDoc
+		 */
+		override protected function createEntityPartitionNode():EntityNode
+		{
+			return new PointLightNode(this);
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		override protected function updateBounds():void
+		{
+			//			super.updateBounds();
+			//			_bounds.fromExtremes(-_fallOff, -_fallOff, -_fallOff, _fallOff, _fallOff, _fallOff);
+			_bounds.fromSphere(new Vector3D(), _fallOff);
+			_boundsInvalid = false;
+		}
+
 	}
 }

@@ -1,16 +1,15 @@
 package me.feng3d.core.base.submesh
 {
+	import flash.events.Event;
+
 	import me.feng3d.arcane;
 	import me.feng3d.animators.IAnimator;
 	import me.feng3d.animators.base.data.AnimationSubGeometry;
-	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.base.Context3DBufferOwner;
-	import me.feng3d.core.base.IRenderable;
+	import me.feng3d.core.base.renderable.RenderableBase;
 	import me.feng3d.core.base.subgeometry.SubGeometry;
-	import me.feng3d.core.buffer.Context3DCache;
-	import me.feng3d.core.proxy.Stage3DProxy;
 	import me.feng3d.entities.Entity;
 	import me.feng3d.entities.Mesh;
+	import me.feng3d.events.MeshEvent;
 	import me.feng3d.materials.MaterialBase;
 
 	use namespace arcane;
@@ -18,21 +17,19 @@ package me.feng3d.core.base.submesh
 	/**
 	 * 子网格，可渲染对象
 	 */
-	public class SubMesh extends Context3DBufferOwner implements IRenderable
+	public class SubMesh extends RenderableBase
 	{
-		protected var _material:MaterialBase;
-		protected var _parentMaterial:MaterialBase;
 		protected var _parentMesh:Mesh;
 		protected var _subGeometry:SubGeometry;
 		arcane var _index:uint;
 
-		private var _materialUsed:MaterialBase;
+		protected var _materialSelf:MaterialBase;
+		private var _material:MaterialBase;
+		private var _materialDirty:Boolean;
 
 		private var _animator:IAnimator;
 
 		private var _animationSubGeometry:AnimationSubGeometry;
-
-		private var _context3dCache:Context3DCache;
 
 		/**
 		 * 创建一个子网格
@@ -42,72 +39,35 @@ package me.feng3d.core.base.submesh
 		 */
 		public function SubMesh(subGeometry:SubGeometry, parentMesh:Mesh, material:MaterialBase = null)
 		{
-			this.parentMesh = parentMesh;
+			_parentMesh = parentMesh;
 			this.subGeometry = subGeometry;
 			this.material = material;
 
-			_context3dCache = new Context3DCache()
-			activateContext3DBuffer(_context3dCache);
-		}
-
-		public function get context3dCache():Context3DCache
-		{
-			return _context3dCache;
+			_parentMesh.addEventListener(MeshEvent.MATERIAL_CHANGE, onMaterialChange);
 		}
 
 		/**
-		 * 使用中的材质
+		 * 渲染材质
 		 */
-		public function get materialUsed():MaterialBase
+		override public function get material():MaterialBase
 		{
-			return _materialUsed;
-		}
-
-		public function set materialUsed(value:MaterialBase):void
-		{
-			if (_materialUsed)
-			{
-				removeChildBufferOwner(_materialUsed);
-			}
-			_materialUsed = value;
-			if (_materialUsed)
-			{
-				addChildBufferOwner(_materialUsed);
-			}
-		}
-
-		/**
-		 * 父材质
-		 */
-		arcane function get parentMaterial():MaterialBase
-		{
-			return _parentMaterial;
-		}
-
-		arcane function set parentMaterial(value:MaterialBase):void
-		{
-			if (_parentMaterial != value)
-			{
-				_parentMaterial = value;
+			if (_materialDirty)
 				updateMaterial();
-			}
+			return _material;
 		}
 
 		/**
-		 * 网格材质
+		 * 自身材质
 		 */
-		public function get material():MaterialBase
+		public function get materialSelf():MaterialBase
 		{
-			return _material;
+			return _materialSelf;
 		}
 
 		public function set material(value:MaterialBase):void
 		{
-			if (_material != value)
-			{
-				_material = value;
-				updateMaterial();
-			}
+			_materialSelf = value;
+			_materialDirty = true;
 		}
 
 		/**
@@ -115,13 +75,25 @@ package me.feng3d.core.base.submesh
 		 */
 		private function updateMaterial():void
 		{
-			materialUsed = _material ? _material : _parentMaterial;
+			var value:MaterialBase = _materialSelf ? _materialSelf : _parentMesh.material;
+			if (value == _material)
+				return;
+
+			if (_material)
+			{
+				_material.removeOwner(this);
+			}
+			_material = value;
+			if (_material)
+			{
+				_material.addOwner(this);
+			}
 		}
 
 		/**
 		 * 所属实体
 		 */
-		public function get sourceEntity():Entity
+		override public function get sourceEntity():Entity
 		{
 			return _parentMesh;
 		}
@@ -168,7 +140,10 @@ package me.feng3d.core.base.submesh
 			}
 		}
 
-		public function get animator():IAnimator
+		/**
+		 * @inheritDoc
+		 */
+		override public function get animator():IAnimator
 		{
 			return _animator;
 		}
@@ -178,13 +153,13 @@ package me.feng3d.core.base.submesh
 			if (_animator)
 			{
 				removeChildBufferOwner(_animator);
-				materialUsed.animationSet = null;
+				material.animationSet = null;
 			}
 			_animator = value;
 			if (_animator)
 			{
 				addChildBufferOwner(_animator);
-				materialUsed.animationSet = _animator.animationSet;
+				material.animationSet = _animator.animationSet;
 			}
 		}
 
@@ -196,33 +171,38 @@ package me.feng3d.core.base.submesh
 			return _parentMesh;
 		}
 
-		arcane function set parentMesh(value:Mesh):void
+		public override function get castsShadows():Boolean
 		{
-			_parentMesh = value;
-			parentMaterial = _parentMesh.material;
+			return _parentMesh.castsShadows;
 		}
 
 		/**
-		 * 渲染子网格
-		 * @param stage3DProxy 
-		 * @param camera			摄像机
-		 */		
-		public function render(stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		 * @inheritDoc
+		 */
+		override public function get mouseEnabled():Boolean
 		{
-			if (!_parentMesh.visible)
-				return;
-
-			//初始化渲染参数
-			context3dCache.shaderParams.init();
-
-			materialUsed.activatePass(context3dCache.shaderParams, stage3DProxy, camera);
-			//准备渲染时所需数据 与 设置渲染参数
-			materialUsed.renderPass(this, stage3DProxy, camera);
-
-			//绘制图形
-			context3dCache.render(stage3DProxy.context3D);
+			return _parentMesh.mouseEnabled || _parentMesh.ancestorsAllowMouseEnabled;
 		}
 
+		/**
+		 * @inheritDoc
+		 */
+		override public function get numTriangles():uint
+		{
+			return _subGeometry.numTriangles;
+		}
+
+		/**
+		 * 处理材质变化事件
+		 */
+		private function onMaterialChange(event:Event):void
+		{
+			_materialDirty = true;
+		}
+
+		/**
+		 * 销毁
+		 */
 		public function dispose():void
 		{
 			material = null;

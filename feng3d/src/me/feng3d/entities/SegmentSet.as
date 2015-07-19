@@ -1,22 +1,26 @@
 package me.feng3d.entities
 {
 
+	import flash.geom.Matrix3D;
 	import flash.geom.Vector3D;
-	
+
 	import me.feng3d.arcane;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
+	import me.feng3d.core.base.renderable.IRenderable;
+	import me.feng3d.core.buffer.Context3DCache;
 	import me.feng3d.entities.segment.SegmentSubGeometry;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 	import me.feng3d.materials.SegmentMaterial;
 	import me.feng3d.primitives.data.Segment;
 
 	use namespace arcane;
 
 	/**
-	 * 线段
+	 * 线段集合
 	 * @author warden_feng 2014-4-9
 	 */
-	public class SegmentSet extends Mesh
+	public class SegmentSet extends Mesh implements IRenderable
 	{
+		private var _numIndices:uint;
 		/**
 		 * 数据缓存
 		 */
@@ -29,7 +33,10 @@ package me.feng3d.entities
 		private var _pointData1:Vector.<Number>;
 		private var _thicknessData:Vector.<Number>;
 		private var _colorData:Vector.<Number>;
-		
+
+		/**
+		 * 创建一个线段集合
+		 */
 		public function SegmentSet()
 		{
 			super();
@@ -38,6 +45,10 @@ package me.feng3d.entities
 			geometry.addSubGeometry(_segmentSubGeometry);
 		}
 
+		/**
+		 * 添加线段
+		 * @param segment		线段数据
+		 */
 		public function addSegment(segment:Segment):void
 		{
 			_segments.push(segment);
@@ -62,7 +73,7 @@ package me.feng3d.entities
 
 			//一条线段由4个顶点组成
 			_segmentSubGeometry.numVertices = _segments.length * 4;
-			
+
 			_segmentSubGeometry.updateIndexData(_indices);
 			_segmentSubGeometry.updatePointData0(_pointData0);
 			_segmentSubGeometry.updatePointData1(_pointData1);
@@ -72,10 +83,8 @@ package me.feng3d.entities
 
 		/**
 		 * 计算线段数据
-		 * @param segment 线段数据
-		 * @param vertices 顶点数据
-		 * @param indices 顶点索引
-		 * @param segmentIndex 线段编号
+		 * @param segment 			线段数据
+		 * @param segmentIndex 		线段编号
 		 */
 		private function computeSegment(segment:Segment, segmentIndex:int):void
 		{
@@ -150,8 +159,8 @@ package me.feng3d.entities
 
 		/**
 		 * 获取线段数据
-		 * @param index 线段索引
-		 * @return
+		 * @param index 		线段索引
+		 * @return				线段数据
 		 */
 		public function getSegment(index:uint):Segment
 		{
@@ -160,6 +169,9 @@ package me.feng3d.entities
 			return null;
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override protected function updateBounds():void
 		{
 			var len:uint;
@@ -172,7 +184,7 @@ package me.feng3d.entities
 			var maxX:Number = -Infinity;
 			var maxY:Number = -Infinity;
 			var maxZ:Number = -Infinity;
-			var vertice0:Vector.<Number> = _segmentSubGeometry.getVAData(Context3DBufferTypeID.POSITION_VA_3);
+			var vertice0:Vector.<Number> = _segmentSubGeometry.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3);
 
 			index = 0;
 			len = vertice0.length;
@@ -212,16 +224,37 @@ package me.feng3d.entities
 			_boundsInvalid = false;
 		}
 
+		/**
+		 * 移除所有线段
+		 */
 		public function removeAllSegments():void
 		{
 			segments.length = 0;
 			_segmentSubGeometry.invalid();
 		}
 
-		/** 线段列表 */
+		/**
+		 * 线段列表
+		 */
 		public function get segments():Vector.<Segment>
 		{
 			return _segments;
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public function get context3dCache():Context3DCache
+		{
+			return null;
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		public function get numTriangles():uint
+		{
+			return _numIndices / 3;
 		}
 	}
 }

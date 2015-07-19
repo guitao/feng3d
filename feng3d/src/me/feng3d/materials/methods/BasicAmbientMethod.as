@@ -2,22 +2,21 @@ package me.feng3d.materials.methods
 {
 	import me.feng3d.arcane;
 	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.base.IRenderable;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.buffer.context3d.FCVectorBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDLight;
 
 	use namespace arcane;
 
 	/**
 	 * 环境光函数
-	 * 
+	 *
 	 * 参考《3d数学基础：图形与游戏开发》337页，15.4.6 环境光分量
 	 * Camb = Gamb X Mamb
 	 * Camb：环境光分量。
 	 * Gamb：整个场景的环境光值。
 	 * Mamb：材质的环境光分量。它总是等于漫反射分量——由纹理图定义。
-	 * 
+	 *
 	 * @author warden_feng 2014-7-1
 	 */
 	public class BasicAmbientMethod extends ShadingMethodBase
@@ -35,7 +34,7 @@ package me.feng3d.materials.methods
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.AMBIENTINPUT_FC_VECTOR, FCVectorBuffer, updateAmbientInputBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.AMBIENTINPUT_FC_VECTOR, updateAmbientInputBuffer);
 		}
 
 		private function updateAmbientInputBuffer(ambientInputBuffer:FCVectorBuffer):void
@@ -57,7 +56,7 @@ package me.feng3d.materials.methods
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function setRenderState(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		override arcane function setRenderState(renderable:IRenderable, camera:Camera3D):void
 		{
 			updateAmbient();
 

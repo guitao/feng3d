@@ -5,10 +5,11 @@ package me.feng3d.parsers
 	import flash.utils.ByteArray;
 	import flash.utils.Timer;
 	import flash.utils.getTimer;
-	
+
+	import me.feng.error.AbstractClassError;
+	import me.feng.error.AbstractMethodError;
 	import me.feng.events.FEventDispatcher;
 	import me.feng3d.arcane;
-	import me.feng3d.errors.AbstractMethodError;
 	import me.feng3d.events.AssetEvent;
 	import me.feng3d.events.ParserEvent;
 	import me.feng3d.library.assets.AssetType;
@@ -16,7 +17,7 @@ package me.feng3d.parsers
 	import me.feng3d.parsers.utils.ParserUtil;
 
 	use namespace arcane;
-	
+
 	/**
 	 * 解析基类
 	 * @author warden_feng 2014-5-16
@@ -46,13 +47,14 @@ package me.feng3d.parsers
 			_materialMode = 0;
 			_dataFormat = format;
 			_dependencies = new Vector.<ResourceDependency>();
+			AbstractClassError.check(this);
 		}
 
 		protected function getTextData():String
 		{
 			return ParserUtil.toString(_data);
 		}
-		
+
 		protected function getByteData():ByteArray
 		{
 			return ParserUtil.toByteArray(_data);
@@ -267,7 +269,7 @@ package me.feng3d.parsers
 		/**
 		 * 触发解析
 		 * @param event
-		 */		
+		 */
 		protected function onInterval(event:TimerEvent = null):void
 		{
 			_lastFrameTime = getTimer();

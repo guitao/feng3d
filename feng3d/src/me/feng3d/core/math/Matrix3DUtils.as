@@ -405,7 +405,7 @@ package me.feng3d.core.math
 
 		/**
 		 * 更新本地射线
-		 * @param inverseSceneTransform 逆场景转换矩阵
+		 * @param inverseSceneTransform 逆场景变换矩阵
 		 * @param ray3D 场景射线
 		 * @param localRay 本地射线
 		 */

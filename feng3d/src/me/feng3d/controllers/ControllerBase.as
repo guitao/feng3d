@@ -1,7 +1,11 @@
 package me.feng3d.controllers
 {
+	import me.feng.error.AbstractClassError;
+	import me.feng.error.AbstractMethodError;
+	import me.feng3d.arcane;
 	import me.feng3d.entities.Entity;
-	import me.feng3d.errors.AbstractMethodError;
+
+	use namespace arcane;
 
 	/**
 	 * 控制器
@@ -9,6 +13,7 @@ package me.feng3d.controllers
 	 */
 	public class ControllerBase
 	{
+		protected var _autoUpdate:Boolean = true;
 		protected var _targetObject:Entity;
 
 		/**
@@ -18,6 +23,8 @@ package me.feng3d.controllers
 		public function ControllerBase(targetObject:Entity = null)
 		{
 			this.targetObject = targetObject;
+
+			AbstractClassError.check(this);
 		}
 
 		/**
@@ -33,7 +40,13 @@ package me.feng3d.controllers
 			if (_targetObject == val)
 				return;
 
+			if (_targetObject && _autoUpdate)
+				_targetObject._controller = null;
+
 			_targetObject = val;
+
+			if (_targetObject && _autoUpdate)
+				_targetObject._controller = this;
 
 			notifyUpdate();
 		}
@@ -44,6 +57,9 @@ package me.feng3d.controllers
 		protected function notifyUpdate():void
 		{
 			update();
+			//
+			if (_targetObject && _targetObject.implicitPartition && _autoUpdate)
+				_targetObject.implicitPartition.markForUpdate(_targetObject);
 		}
 
 		/**

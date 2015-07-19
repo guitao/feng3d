@@ -1,15 +1,14 @@
 package me.feng3d.animators.particle
 {
 	import me.feng3d.arcane;
-	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.base.IRenderable;
-	import me.feng3d.core.base.submesh.SubMesh;
-	import me.feng3d.core.buffer.context3d.VCVectorBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.fagal.context3dDataIds.ParticleContext3DBufferID;
+	import me.feng3d.animators.IAnimator;
 	import me.feng3d.animators.base.AnimationSetBase;
 	import me.feng3d.animators.base.Animator;
-	import me.feng3d.animators.IAnimator;
+	import me.feng3d.cameras.Camera3D;
+	import me.feng3d.core.base.renderable.IRenderable;
+	import me.feng3d.core.base.submesh.SubMesh;
+	import me.feng3d.core.buffer.context3d.VCVectorBuffer;
+	import me.feng3d.fagal.context3dDataIds.ParticleContext3DBufferID;
 
 	use namespace arcane;
 
@@ -26,7 +25,7 @@ package me.feng3d.animators.particle
 
 		/** 时间常数（粒子当前时间） */
 		private const timeConstData:Vector.<Number> = new Vector.<Number>(4);
-		
+
 		public function get animationSet():AnimationSetBase
 		{
 			return _particleAnimationSet;
@@ -42,25 +41,25 @@ package me.feng3d.animators.particle
 			_particleAnimationSet = particleAnimationSet;
 			addChildBufferOwner(_particleAnimationSet);
 		}
-		
+
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(ParticleContext3DBufferID.PARTICLECOMMON_VC_VECTOR, VCVectorBuffer, updateParticleConstDataBuffer);
-			mapContext3DBuffer(ParticleContext3DBufferID.PARTICLETIME_VC_VECTOR, VCVectorBuffer, updateTimeConstBuffer);
+			mapContext3DBuffer(ParticleContext3DBufferID.PARTICLECOMMON_VC_VECTOR, updateParticleConstDataBuffer);
+			mapContext3DBuffer(ParticleContext3DBufferID.PARTICLETIME_VC_VECTOR, updateTimeConstBuffer);
 		}
-		
+
 		private function updateTimeConstBuffer(timeConstBuffer:VCVectorBuffer):void
 		{
 			timeConstBuffer.update(timeConstData);
 		}
-		
+
 		private function updateParticleConstDataBuffer(particleConstDataBuffer:VCVectorBuffer):void
 		{
 			particleConstDataBuffer.update(vertexZeroConst);
 		}
 
-		public function setRenderState(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		public function setRenderState(renderable:IRenderable, camera:Camera3D):void
 		{
 			var subMesh:SubMesh = renderable as SubMesh;
 
@@ -71,8 +70,8 @@ package me.feng3d.animators.particle
 				_particleAnimationSet.generateAnimationSubGeometries(subMesh.parentMesh);
 
 			timeConstData[0] = timeConstData[1] = timeConstData[2] = timeConstData[3] = time / 1000;
-			
-			_particleAnimationSet.setRenderState(renderable, stage3DProxy, camera)
+
+			_particleAnimationSet.setRenderState(renderable, camera)
 		}
 
 	}

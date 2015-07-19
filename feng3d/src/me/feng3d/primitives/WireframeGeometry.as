@@ -2,10 +2,10 @@ package me.feng3d.primitives
 {
 	import flash.geom.Vector3D;
 	import flash.utils.Dictionary;
-	
+
 	import me.feng3d.core.base.Geometry;
 	import me.feng3d.core.base.subgeometry.SubGeometry;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 
 	/**
 	* 线框几何体
@@ -33,7 +33,7 @@ package me.feng3d.primitives
 
 		/**
 		 * 绘制几何体线框
-		 */		
+		 */
 		public function setDrawGeometry(value:Geometry):void
 		{
 			_drawGeometry = value;
@@ -57,7 +57,7 @@ package me.feng3d.primitives
 				//顶点索引
 				var _vertexIndices:Vector.<uint> = subGeometry.indexData;
 				//顶点位置
-				var _vertices:Vector.<Number> = subGeometry.getVAData(Context3DBufferTypeID.POSITION_VA_3);
+				var _vertices:Vector.<Number> = subGeometry.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3);
 
 				var numTriangle:uint = _vertexIndices.length / 3;
 				var indexA:uint;

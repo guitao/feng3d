@@ -1,11 +1,11 @@
 package me.feng3d.animators.skeleton
 {
 	import me.feng3d.arcane;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.fagal.params.ShaderParams;
-	import me.feng3d.passes.MaterialPassBase;
-	import me.feng3d.animators.base.AnimationSetBase;
 	import me.feng3d.animators.AnimationType;
+	import me.feng3d.animators.base.AnimationSetBase;
+	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.params.ShaderParamsAnimation;
+	import me.feng3d.passes.MaterialPassBase;
 
 	use namespace arcane;
 
@@ -36,15 +36,17 @@ package me.feng3d.animators.skeleton
 			return _jointsPerVertex;
 		}
 
-		arcane override function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy, pass:MaterialPassBase):void
+		arcane override function activate(shaderParams:ShaderParams, pass:MaterialPassBase):void
 		{
-			shaderParams.numJoints = _numJoints;
-			shaderParams.jointsPerVertex = _jointsPerVertex;
+			var shaderParamsAnimation:ShaderParamsAnimation = shaderParams.getComponent(ShaderParamsAnimation.NAME);
+
+			shaderParamsAnimation.numJoints = _numJoints;
+			shaderParamsAnimation.jointsPerVertex = _jointsPerVertex;
 
 			if (usesCPU)
-				shaderParams.animationType = AnimationType.SKELETON_CPU;
+				shaderParamsAnimation.animationType = AnimationType.SKELETON_CPU;
 			else
-				shaderParams.animationType = AnimationType.SKELETON_GPU;
+				shaderParamsAnimation.animationType = AnimationType.SKELETON_GPU;
 		}
 
 		public function set numJoints(value:uint):void

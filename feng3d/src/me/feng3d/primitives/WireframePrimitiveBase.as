@@ -1,9 +1,10 @@
 package me.feng3d.primitives
 {
 	import flash.geom.Vector3D;
-	
+
+	import me.feng.error.AbstractClassError;
+	import me.feng.error.AbstractMethodError;
 	import me.feng3d.entities.SegmentSet;
-	import me.feng3d.errors.AbstractMethodError;
 	import me.feng3d.primitives.data.Segment;
 
 	/**
@@ -25,6 +26,7 @@ package me.feng3d.primitives
 				thickness = 1;
 			this.color = color;
 			this.thickness = thickness;
+			AbstractClassError.check(this);
 		}
 
 		/** 线框颜色 */
@@ -68,14 +70,14 @@ package me.feng3d.primitives
 		{
 			throw new AbstractMethodError();
 		}
-		
+
 		override protected function updateSegmentData():void
 		{
 			buildGeometry();
-			
+
 			super.updateSegmentData();
 		}
-		
+
 		/**
 		 * 更新线条
 		 * @param index 线段编号

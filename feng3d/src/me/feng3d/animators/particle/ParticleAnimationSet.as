@@ -1,26 +1,26 @@
 package me.feng3d.animators.particle
 {
 	import flash.utils.Dictionary;
-	
+
 	import me.feng3d.arcane;
+	import me.feng3d.animators.AnimationType;
+	import me.feng3d.animators.base.AnimationSetBase;
 	import me.feng3d.animators.base.data.AnimationSubGeometry;
 	import me.feng3d.animators.particle.data.ParticleProperties;
 	import me.feng3d.animators.particle.data.ParticlePropertiesMode;
 	import me.feng3d.animators.particle.node.ParticleNodeBase;
 	import me.feng3d.animators.particle.node.ParticleTimeNode;
 	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.base.IRenderable;
 	import me.feng3d.core.base.ParticleGeometry;
 	import me.feng3d.core.base.data.ParticleData;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.base.subgeometry.SubGeometry;
 	import me.feng3d.core.base.submesh.SubMesh;
-	import me.feng3d.core.proxy.Stage3DProxy;
 	import me.feng3d.entities.Mesh;
-	import me.feng3d.fagal.params.ParticleShaderParam;
 	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.params.ShaderParamsAnimation;
+	import me.feng3d.fagal.params.ShaderParamsParticle;
 	import me.feng3d.passes.MaterialPassBase;
-	import me.feng3d.animators.base.AnimationSetBase;
-	import me.feng3d.animators.AnimationType;
 
 	use namespace arcane;
 
@@ -48,7 +48,7 @@ package me.feng3d.animators.particle
 		public var hasBillboard:Boolean;
 
 		/** 粒子渲染参数 */
-		private var particleShaderParam:ParticleShaderParam = new ParticleShaderParam();
+		private var particleShaderParam:ShaderParamsParticle = new ShaderParamsParticle();
 
 		/** 动画节点列表 */
 		private var _effects:Vector.<ParticleNodeBase> = new Vector.<ParticleNodeBase>();
@@ -110,10 +110,12 @@ package me.feng3d.animators.particle
 			_effectNames.push(node.animationName);
 		}
 
-		arcane override function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy, pass:MaterialPassBase):void
+		arcane override function activate(shaderParams:ShaderParams, pass:MaterialPassBase):void
 		{
-			shaderParams.particleShaderParam = particleShaderParam;
-			shaderParams.animationType = AnimationType.PARTICLE;
+			shaderParams.addComponent(particleShaderParam);
+
+			var shaderParamsAnimation:ShaderParamsAnimation = shaderParams.getComponent(ShaderParamsAnimation.NAME);
+			shaderParamsAnimation.animationType = AnimationType.PARTICLE;
 		}
 
 		/**
@@ -218,11 +220,11 @@ package me.feng3d.animators.particle
 			}
 		}
 
-		public function setRenderState(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		public function setRenderState(renderable:IRenderable, camera:Camera3D):void
 		{
 			for (var i:int = 0; i < _particleNodes.length; i++)
 			{
-				_particleNodes[i].setRenderState(stage3DProxy, renderable, camera);
+				_particleNodes[i].setRenderState(renderable, camera);
 			}
 		}
 	}

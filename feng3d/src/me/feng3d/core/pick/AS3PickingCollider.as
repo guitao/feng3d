@@ -1,10 +1,10 @@
 package me.feng3d.core.pick
 {
 	import flash.geom.Vector3D;
-	
+
 	import me.feng3d.core.base.subgeometry.SubGeometry;
 	import me.feng3d.core.base.submesh.SubMesh;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 
 	/**
 	 * 使用纯AS3计算与实体相交
@@ -17,7 +17,7 @@ package me.feng3d.core.pick
 		/**
 		 * 创建一个AS碰撞检测器
 		 * @param findClosestCollision 是否查找最短距离碰撞
-		 */		
+		 */
 		public function AS3PickingCollider(findClosestCollision:Boolean = false)
 		{
 			_findClosestCollision = findClosestCollision;
@@ -38,17 +38,17 @@ package me.feng3d.core.pick
 			var s1x:Number, s1y:Number, s1z:Number;
 			var nl:Number, nDotV:Number, D:Number, disToPlane:Number;
 			var Q1Q2:Number, Q1Q1:Number, Q2Q2:Number, RQ1:Number, RQ2:Number;
-			
+
 			var subGeom:SubGeometry = subMesh.subGeometry as SubGeometry;
-			
+
 			var indexData:Vector.<uint> = subGeom.indexData;
-			var vertexData:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeID.POSITION_VA_3);
-			var uvData:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeID.UV_VA_2);
+			var vertexData:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3);
+			var uvData:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeIDCommon.UV_VA_2);
 			var collisionTriangleIndex:int = -1;
 
-			var vertexStride:uint = subGeom.getVALen(Context3DBufferTypeID.POSITION_VA_3);
+			var vertexStride:uint = subGeom.getVALen(Context3DBufferTypeIDCommon.POSITION_VA_3);
 			var vertexOffset:uint = 0;
-			var uvStride:uint = subGeom.getVALen(Context3DBufferTypeID.UV_VA_2);
+			var uvStride:uint = subGeom.getVALen(Context3DBufferTypeIDCommon.UV_VA_2);
 			var numIndices:int = indexData.length;
 
 			//遍历每个三角形 检测碰撞
@@ -89,13 +89,14 @@ package me.feng3d.core.pick
 				var rayPosition:Vector3D = ray3D.position;
 				var rayDirection:Vector3D = ray3D.direction;
 
-				//计算射线与法线的点积，小于零表示射线与三角面相交
+				//计算射线与法线的点积，不等于零表示射线所在直线与三角面相交
 				nDotV = nx * rayDirection.x + ny * +rayDirection.y + nz * rayDirection.z; // rayDirection . normal
 				//判断射线是否与三角面相交
 				if ((!bothSides && nDotV < 0.0) || (bothSides && nDotV != 0.0))
 				{ // an intersection must exist
-					//计算出交点在射线所在位置t
+					//计算平面方程D值，参考Plane3D
 					D = -(nx * p0x + ny * p0y + nz * p0z);
+					//射线点到平面的距离
 					disToPlane = -(nx * rayPosition.x + ny * rayPosition.y + nz * rayPosition.z + D);
 					t = disToPlane / nDotV;
 					//得到交点

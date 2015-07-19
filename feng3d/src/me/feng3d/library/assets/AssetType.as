@@ -7,7 +7,7 @@ package me.feng3d.library.assets
 		public static const ENTITY:String = 'entity';
 		/** 天空盒 */
 		public static const SKYBOX:String = 'skybox';
-		/** 照相机 */
+		/** 摄像机 */
 		public static const CAMERA:String = 'camera';
 		/** 线条 */
 		public static const SEGMENT_SET:String = 'segmentSet';
@@ -36,8 +36,11 @@ package me.feng3d.library.assets
 		public static const ANIMATOR:String = 'animator';
 
 		public static const STATE_TRANSITION:String = 'stateTransition';
+		/** 灯光 */
 		public static const LIGHT:String = 'light';
+		/** 灯光采集器 */
 		public static const LIGHT_PICKER:String = 'lightPicker';
+		/** 阴影投射方法 */
 		public static const SHADOW_MAP_METHOD:String = 'shadowMapMethod';
 		public static const EFFECTS_METHOD:String = 'effectsMethod';
 	}

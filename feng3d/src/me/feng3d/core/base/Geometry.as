@@ -45,8 +45,8 @@ package me.feng3d.core.base
 		}
 
 		/**
-		 * 应用转换矩阵
-		 * @param transform 转换矩阵
+		 * 应用变换矩阵
+		 * @param transform 变换矩阵
 		 */
 		public function applyTransformation(transform:Matrix3D):void
 		{

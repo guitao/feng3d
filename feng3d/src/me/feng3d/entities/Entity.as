@@ -1,18 +1,20 @@
 package me.feng3d.entities
 {
 	import flash.geom.Vector3D;
-	
+
+	import me.feng.error.AbstractClassError;
+	import me.feng.error.AbstractMethodError;
 	import me.feng3d.arcane;
 	import me.feng3d.bounds.AxisAlignedBoundingBox;
 	import me.feng3d.bounds.BoundingVolumeBase;
-	import me.feng3d.cameras.Camera3D;
 	import me.feng3d.containers.ObjectContainer3D;
+	import me.feng3d.containers.Scene3D;
 	import me.feng3d.core.math.Matrix3DUtils;
 	import me.feng3d.core.math.Ray3D;
+	import me.feng3d.core.partition.Partition3D;
+	import me.feng3d.core.partition.node.EntityNode;
 	import me.feng3d.core.pick.IPickingCollider;
 	import me.feng3d.core.pick.PickingCollisionVO;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.errors.AbstractMethodError;
 
 	use namespace arcane;
 
@@ -23,6 +25,7 @@ package me.feng3d.entities
 	public class Entity extends ObjectContainer3D
 	{
 		private var _showBounds:Boolean;
+		private var _partitionNode:EntityNode;
 		private var _boundsIsShown:Boolean = false;
 
 		protected var _bounds:BoundingVolumeBase;
@@ -31,11 +34,19 @@ package me.feng3d.entities
 		arcane var _pickingCollisionVO:PickingCollisionVO;
 		arcane var _pickingCollider:IPickingCollider;
 
+		private var _worldBounds:BoundingVolumeBase;
+		private var _worldBoundsInvalid:Boolean = true;
+
+		/**
+		 * 创建一个实体，该类为虚类
+		 */
 		public function Entity()
 		{
 			super();
 
 			_bounds = getDefaultBoundingVolume();
+			_worldBounds = getDefaultBoundingVolume();
+			AbstractClassError.check(this);
 		}
 
 		/**
@@ -183,9 +194,101 @@ package me.feng3d.entities
 			return true;
 		}
 
-		public function render(stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		/**
+		 * @inheritDoc
+		 */
+		override arcane function set implicitPartition(value:Partition3D):void
+		{
+			if (value == _implicitPartition)
+				return;
+
+			if (_implicitPartition)
+				notifyPartitionUnassigned();
+
+			super.implicitPartition = value;
+
+			notifyPartitionAssigned();
+		}
+
+		/**
+		 * 通知场景一个新分区已分配
+		 */
+		private function notifyPartitionAssigned():void
+		{
+			if (_scene)
+				_scene.registerPartition(this);
+		}
+
+		/**
+		 * 通知场景一个分区取消分配
+		 */
+		private function notifyPartitionUnassigned():void
+		{
+			if (_scene)
+				_scene.unregisterPartition(this);
+		}
+
+		/**
+		 * @inheritDoc
+		 */
+		override public function set scene(value:Scene3D):void
+		{
+			if (value == _scene)
+				return;
+
+			if (_scene)
+				_scene.unregisterEntity(this);
+
+			if (value)
+				value.registerEntity(this);
+
+			super.scene = value;
+		}
+
+		/**
+		 * 获取实体分区节点
+		 */
+		public function getEntityPartitionNode():EntityNode
+		{
+			return _partitionNode ||= createEntityPartitionNode();
+		}
+
+		/**
+		 * 创建实体分区节点，该函数为虚函数，需要子类重写。
+		 */
+		protected function createEntityPartitionNode():EntityNode
 		{
 			throw new AbstractMethodError();
+		}
+
+
+		/**
+		 * 内部更新
+		 */
+		arcane function internalUpdate():void
+		{
+			if (_controller)
+				_controller.update();
+		}
+
+		/**
+		 * 世界边界
+		 */
+		public function get worldBounds():BoundingVolumeBase
+		{
+			if (_worldBoundsInvalid)
+				updateWorldBounds();
+
+			return _worldBounds;
+		}
+
+		/**
+		 * 更新世界边界
+		 */
+		private function updateWorldBounds():void
+		{
+			_worldBounds.transformFrom(bounds, sceneTransform);
+			_worldBoundsInvalid = false;
 		}
 	}
 }

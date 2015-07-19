@@ -2,60 +2,84 @@ package me.feng3d.passes
 {
 
 	import flash.geom.Matrix3D;
-	
+
 	import me.feng3d.arcane;
 	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.base.IRenderable;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
-	import me.feng3d.core.buffer.Context3DCache;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.buffer.context3d.FCVectorBuffer;
 	import me.feng3d.core.buffer.context3d.ProgramBuffer;
 	import me.feng3d.core.buffer.context3d.VCMatrixBuffer;
 	import me.feng3d.core.buffer.context3d.VCVectorBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
 	import me.feng3d.events.ShadingMethodEvent;
-	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeID;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
+	import me.feng3d.fagal.params.ShaderParamsLight;
 	import me.feng3d.materials.methods.BasicAmbientMethod;
 	import me.feng3d.materials.methods.BasicDiffuseMethod;
 	import me.feng3d.materials.methods.BasicSpecularMethod;
 	import me.feng3d.materials.methods.ShaderMethodSetup;
+	import me.feng3d.materials.methods.ShadowMapMethodBase;
 	import me.feng3d.textures.Texture2DBase;
 
 	use namespace arcane;
 
 	/**
-	 * 编译通道<br/>
-	 * 用于处理复杂的渲染通道
+	 * 编译通道
+	 * <p>用于处理复杂的渲染通道</p>
 	 * @author warden_feng 2014-6-5
 	 */
 	public class CompiledPass extends MaterialPassBase
 	{
-		protected var _preserveAlpha:Boolean = true;
-
+		/**
+		 * 物体投影变换矩阵（模型空间坐标-->GPU空间坐标）
+		 */
 		protected const modelViewProjection:Matrix3D = new Matrix3D();
 
-		protected const sceneNormalMatrix:Matrix3D = new Matrix3D();
+		/**
+		 * 法线场景变换矩阵（模型空间坐标-->世界空间坐标）
+		 */
+		protected const normalSceneMatrix:Matrix3D = new Matrix3D();
 
-		protected const globalTransformMatrix:Matrix3D = new Matrix3D();
+		/**
+		 * 场景变换矩阵（模型空间坐标-->世界空间坐标）
+		 */
+		protected const sceneTransformMatrix:Matrix3D = new Matrix3D();
 
-		protected const cameraProjectionMatrix:Matrix3D = new Matrix3D();
+		/**
+		 * 世界投影矩阵（世界空间坐标-->投影空间坐标）
+		 */
+		protected const worldProjectionMatrix:Matrix3D = new Matrix3D();
 
 		protected var _ambientLightR:Number;
 		protected var _ambientLightG:Number;
 		protected var _ambientLightB:Number;
 
+		/**
+		 * 通用数据
+		 */
 		protected const commonsData:Vector.<Number> = new Vector.<Number>(4);
 
-		/** 照相机位置 */
+		/**
+		 * 摄像机世界坐标
+		 */
 		protected const cameraPosition:Vector.<Number> = new Vector.<Number>(4);
 
+		/**
+		 * 是否开启灯光衰减
+		 */
 		protected var _enableLightFallOff:Boolean = true;
 
+		/**
+		 * 创建一个编译通道类
+		 */
 		public function CompiledPass()
 		{
 			init();
 		}
 
+		/**
+		 * 初始化
+		 */
 		private function init():void
 		{
 			_methodSetup = new ShaderMethodSetup();
@@ -63,30 +87,32 @@ package me.feng3d.passes
 			addChildBufferOwner(_methodSetup);
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.COMMONSDATA_FC_VECTOR, FCVectorBuffer, updateCommonsDataBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.CAMERAPOSITION_VC_VECTOR, VCVectorBuffer, updateCameraPositionBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.PROJECTION_VC_MATRIX, VCMatrixBuffer, updateProjectionBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.NORMALGLOBALTRANSFORM_VC_MATRIX, VCMatrixBuffer, updateSceneNormalMatrixBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.GLOBALTRANSFORM_VC_MATRIX, VCMatrixBuffer, updateGlobalTransformMatrixBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.CAMERAPROJECTION_VC_MATRIX, VCMatrixBuffer, updateCameraProjectionMatrixBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDCommon.COMMONSDATA_FC_VECTOR, updateCommonsDataBuffer);
+			mapContext3DBuffer(Context3DBufferTypeID.CAMERAPOSITION_VC_VECTOR, updateCameraPositionBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDCommon.PROJECTION_VC_MATRIX, updateProjectionBuffer);
+			mapContext3DBuffer(Context3DBufferTypeID.NORMALSCENETRANSFORM_VC_MATRIX, updateSceneNormalMatrixBuffer);
+			mapContext3DBuffer(Context3DBufferTypeID.SCENETRANSFORM_VC_MATRIX, updateSceneTransformMatrixBuffer);
+			mapContext3DBuffer(Context3DBufferTypeID.WORDPROJECTION_VC_MATRIX, updateWordProjectionMatrixBuffer);
 		}
 
-		override arcane function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		/**
+		 * @inheritDoc
+		 */
+		override arcane function activate(camera:Camera3D):void
 		{
-			super.activate(shaderParams, stage3DProxy, camera);
+			super.activate(camera);
 
-			shaderParams.useLightFallOff = _enableLightFallOff;
+			var shaderParamsLight:ShaderParamsLight = shaderParams.getComponent(ShaderParamsLight.NAME);
 
-			if (_methodSetup._normalMethod)
-				_methodSetup._normalMethod.activate(shaderParams, stage3DProxy);
-			_methodSetup._ambientMethod.activate(shaderParams, stage3DProxy);
-			_methodSetup._diffuseMethod.activate(shaderParams, stage3DProxy);
-			if (_methodSetup._specularMethod)
-				_methodSetup._specularMethod.activate(shaderParams, stage3DProxy);
+			shaderParamsLight.useLightFallOff = _enableLightFallOff;
 
+			_methodSetup.activate(shaderParams);
 
 			_ambientLightR = _ambientLightG = _ambientLightB = 0;
 			if (usesLights())
@@ -98,96 +124,150 @@ package me.feng3d.passes
 			ambientMethod._lightAmbientB = _ambientLightB;
 		}
 
-		override arcane function render(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		/**
+		 * @inheritDoc
+		 */
+		override arcane function render(renderable:IRenderable, camera:Camera3D):void
 		{
-			//全局转换矩阵（物体坐标-->世界坐标）
+			//场景变换矩阵（物体坐标-->世界坐标）
 			var sceneTransform:Matrix3D = renderable.sourceEntity.sceneTransform;
-			//投影矩阵（世界坐标-->照相机坐标）
+			//投影矩阵（世界坐标-->投影坐标）
 			var projectionmatrix:Matrix3D = camera.viewProjection;
 
-			//物体投影转换矩阵（物体坐标系-->照相机坐标）
+			//全局变换矩阵
+			sceneTransformMatrix.copyFrom(sceneTransform);
+
+			//投影矩阵
+			worldProjectionMatrix.copyFrom(projectionmatrix);
+
+			//法线全局变换矩阵
+			normalSceneMatrix.copyFrom(sceneTransform);
+
+			//物体投影变换矩阵
 			modelViewProjection.identity();
 			modelViewProjection.append(sceneTransform);
 			modelViewProjection.append(projectionmatrix);
 
-			//全局转换矩阵（物体坐标-->世界坐标）
-			globalTransformMatrix.copyFrom(sceneTransform);
-
-			//投影矩阵（世界坐标-->照相机坐标）
-			cameraProjectionMatrix.copyFrom(projectionmatrix);
-
-			//法线全局转换矩阵（物体坐标-->世界坐标）
-			sceneNormalMatrix.copyFrom(sceneTransform);
-
-			//照相机世界坐标
+			//摄像机世界坐标
 			cameraPosition[0] = camera.scenePosition.x;
 			cameraPosition[1] = camera.scenePosition.y;
 			cameraPosition[2] = camera.scenePosition.z;
 			cameraPosition[3] = 1;
 
-			_methodSetup.setRenderState(renderable, stage3DProxy, camera);
+			_methodSetup.setRenderState(renderable, camera);
 		}
 
+		/**
+		 * 更新摄像机坐标缓冲
+		 * @param cameraPositionBuffer		摄像机坐标缓冲
+		 */
 		protected function updateCameraPositionBuffer(cameraPositionBuffer:VCVectorBuffer):void
 		{
 			cameraPositionBuffer.update(cameraPosition);
 		}
 
+		/**
+		 * 更新通用缓冲
+		 * @param commonsDataBuffer		通用缓冲
+		 */
 		protected function updateCommonsDataBuffer(commonsDataBuffer:FCVectorBuffer):void
 		{
 			commonsDataBuffer.update(commonsData);
 		}
 
 		/**
-		 * 更新投影矩阵
+		 * 更新投影矩阵缓冲
+		 * @param projectionBuffer		投影矩阵缓冲
 		 */
 		protected function updateProjectionBuffer(projectionBuffer:VCMatrixBuffer):void
 		{
 			projectionBuffer.update(modelViewProjection, true);
 		}
 
-		protected function updateCameraProjectionMatrixBuffer(cameraProjectionMatrixBuffer:VCMatrixBuffer):void
+		/**
+		 * 更新摄像机投影矩阵缓冲
+		 * @param cameraProjectionMatrixBuffer		摄像机投影矩阵缓冲
+		 */
+		protected function updateWordProjectionMatrixBuffer(worldProjectionMatrixBuffer:VCMatrixBuffer):void
 		{
-			cameraProjectionMatrixBuffer.update(cameraProjectionMatrix, true);
+			worldProjectionMatrixBuffer.update(worldProjectionMatrix, true);
 		}
 
-		protected function updateGlobalTransformMatrixBuffer(globalTransformMatrixBuffer:VCMatrixBuffer):void
+		/**
+		 * 更新场景变换矩阵缓冲
+		 * @param sceneTransformMatrixBuffer		场景变换矩阵缓冲
+		 */
+		protected function updateSceneTransformMatrixBuffer(sceneTransformMatrixBuffer:VCMatrixBuffer):void
 		{
-			globalTransformMatrixBuffer.update(globalTransformMatrix, true);
+			sceneTransformMatrixBuffer.update(sceneTransformMatrix, true);
 		}
 
-		protected function updateSceneNormalMatrixBuffer(sceneNormalMatrixBuffer:VCMatrixBuffer):void
+		/**
+		 * 更新法线场景变换矩阵缓冲
+		 * @param normalSceneMatrixBuffer			法线场景变换矩阵缓冲
+		 */
+		protected function updateSceneNormalMatrixBuffer(normalSceneMatrixBuffer:VCMatrixBuffer):void
 		{
-			sceneNormalMatrixBuffer.update(sceneNormalMatrix, true);
+			normalSceneMatrixBuffer.update(normalSceneMatrix, true);
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override arcane function updateProgramBuffer(programBuffer:ProgramBuffer):void
 		{
 			reset();
 			super.updateProgramBuffer(programBuffer);
 		}
 
+		/**
+		 * 重置编译通道
+		 */
 		private function reset():void
 		{
 			initConstantData();
 		}
 
+		/**
+		 * 初始化常量数据
+		 */
 		private function initConstantData():void
 		{
 			initCommonsData();
+			updateMethodConstants();
 		}
 
+		/**
+		 * 初始化通用数据
+		 */
 		protected function initCommonsData():void
 		{
 			commonsData[0] = .5;
 			commonsData[1] = 0;
 			commonsData[2] = 1 / 255;
 			commonsData[3] = 1;
-			markBufferDirty(Context3DBufferTypeID.COMMONSDATA_FC_VECTOR);
+			markBufferDirty(Context3DBufferTypeIDCommon.COMMONSDATA_FC_VECTOR);
 		}
 
 		/**
-		 * The method that provides the diffuse lighting contribution. Defaults to BasicDiffuseMethod.
+		 * Updates method constants if they have changed.
+		 */
+		protected function updateMethodConstants():void
+		{
+			if (_methodSetup._normalMethod)
+				_methodSetup._normalMethod.initConstants();
+			if (_methodSetup._diffuseMethod)
+				_methodSetup._diffuseMethod.initConstants();
+			if (_methodSetup._ambientMethod)
+				_methodSetup._ambientMethod.initConstants();
+			if (_methodSetup._specularMethod)
+				_methodSetup._specularMethod.initConstants();
+			if (_methodSetup._shadowMethod)
+				_methodSetup._shadowMethod.initConstants();
+		}
+
+		/**
+		 * 漫反射方法，默认为BasicDiffuseMethod
 		 */
 		public function get diffuseMethod():BasicDiffuseMethod
 		{
@@ -200,7 +280,7 @@ package me.feng3d.passes
 		}
 
 		/**
-		 * The method that provides the specular lighting contribution. Defaults to BasicSpecularMethod.
+		 * 镜面反射方法，默认为BasicSpecularMethod
 		 */
 		public function get specularMethod():BasicSpecularMethod
 		{
@@ -213,7 +293,7 @@ package me.feng3d.passes
 		}
 
 		/**
-		 * The method that provides the ambient lighting contribution. Defaults to BasicAmbientMethod.
+		 * 环境光方法，默认为BasicAmbientMethod
 		 */
 		public function get ambientMethod():BasicAmbientMethod
 		{
@@ -226,8 +306,7 @@ package me.feng3d.passes
 		}
 
 		/**
-		 * The normal map to modulate the direction of the surface for each texel. The default normal method expects
-		 * tangent-space normal maps, but others could expect object-space maps.
+		 * 法线贴图，用来表示纹理表面方向
 		 */
 		public function get normalMap():Texture2DBase
 		{
@@ -239,22 +318,8 @@ package me.feng3d.passes
 			_methodSetup._normalMethod.normalMap = value;
 		}
 
-		public function get preserveAlpha():Boolean
-		{
-			return _preserveAlpha;
-		}
-
-		public function set preserveAlpha(value:Boolean):void
-		{
-			if (_preserveAlpha == value)
-				return;
-			_preserveAlpha = value;
-			invalidateShaderProgram();
-		}
-
 		/**
-		 * Whether or not to use fallOff and radius properties for lights. This can be used to improve performance and
-		 * compatibility for constrained mode.
+		 * 是否开启灯光衰减，可以提高灯光渲染性能与真实性
 		 */
 		public function get enableLightFallOff():Boolean
 		{
@@ -269,7 +334,7 @@ package me.feng3d.passes
 		}
 
 		/**
-		 * Called when any method's shader code is invalidated.
+		 * 处理渲染失效事件
 		 */
 		private function onShaderInvalidated(event:ShadingMethodEvent):void
 		{
@@ -277,11 +342,23 @@ package me.feng3d.passes
 		}
 
 		/**
-		 * Updates constant data render state used by the lights. This method is optional for subclasses to implement.
+		 * 更新灯光常数数据
 		 */
 		protected function updateLightConstants():void
 		{
-			// up to subclasses to optionally implement
+		}
+
+		/**
+		 * 阴影映射函数
+		 */
+		public function get shadowMethod():ShadowMapMethodBase
+		{
+			return _methodSetup.shadowMethod;
+		}
+
+		public function set shadowMethod(value:ShadowMapMethodBase):void
+		{
+			_methodSetup.shadowMethod = value;
 		}
 	}
 }

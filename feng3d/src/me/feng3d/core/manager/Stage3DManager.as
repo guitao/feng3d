@@ -2,12 +2,12 @@ package me.feng3d.core.manager
 {
 	import flash.display.Stage;
 	import flash.utils.Dictionary;
-	
+
 	import me.feng3d.arcane;
 	import me.feng3d.core.proxy.Stage3DProxy;
-	
+
 	use namespace arcane;
-	
+
 	/**
 	 * The Stage3DManager class provides a multiton object that handles management for Stage3D objects. Stage3D objects
 	 * should not be requested directly, but are exposed by a Stage3DProxy.
@@ -19,9 +19,9 @@ package me.feng3d.core.manager
 		private static var _instances:Dictionary;
 		private static var _stageProxies:Vector.<Stage3DProxy>;
 		private static var _numStageProxies:uint = 0;
-		
+
 		private var _stage:Stage;
-		
+
 		/**
 		 * Creates a new Stage3DManager class.
 		 * @param stage The Stage object that contains the Stage3D objects to be managed.
@@ -32,11 +32,11 @@ package me.feng3d.core.manager
 			if (!Stage3DManagerSingletonEnforcer)
 				throw new Error("This class is a multiton and cannot be instantiated manually. Use Stage3DManager.getInstance instead.");
 			_stage = stage;
-			
+
 			if (!_stageProxies)
 				_stageProxies = new Vector.<Stage3DProxy>(_stage.stage3Ds.length, true);
 		}
-		
+
 		/**
 		 * Gets a Stage3DManager instance for the given Stage object.
 		 * @param stage The Stage object that contains the Stage3D objects to be managed.
@@ -46,7 +46,7 @@ package me.feng3d.core.manager
 		{
 			return (_instances ||= new Dictionary())[stage] ||= new Stage3DManager(stage, new Stage3DManagerSingletonEnforcer());
 		}
-		
+
 		/**
 		 * Requests the Stage3DProxy for the given index.
 		 * @param index The index of the requested Stage3D.
@@ -56,14 +56,15 @@ package me.feng3d.core.manager
 		 */
 		public function getStage3DProxy(index:uint, forceSoftware:Boolean = false, profile:String = "baseline"):Stage3DProxy
 		{
-			if (!_stageProxies[index]) {
+			if (!_stageProxies[index])
+			{
 				_numStageProxies++;
 				_stageProxies[index] = new Stage3DProxy(index, _stage.stage3Ds[index], this, forceSoftware, profile);
 			}
-			
+
 			return _stageProxies[index];
 		}
-		
+
 		/**
 		 * Removes a Stage3DProxy from the manager.
 		 * @param stage3DProxy
@@ -74,7 +75,7 @@ package me.feng3d.core.manager
 			_numStageProxies--;
 			_stageProxies[stage3DProxy.stage3DIndex] = null;
 		}
-		
+
 		/**
 		 * Get the next available stage3DProxy. An error is thrown if there are no Stage3DProxies available
 		 * @param forceSoftware Whether to force software mode even if hardware acceleration is available.
@@ -85,9 +86,11 @@ package me.feng3d.core.manager
 		{
 			var i:uint;
 			var len:uint = _stageProxies.length;
-			
-			while (i < len) {
-				if (!_stageProxies[i]) {
+
+			while (i < len)
+			{
+				if (!_stageProxies[i])
+				{
 					getStage3DProxy(i, forceSoftware, profile);
 					_stageProxies[i].width = _stage.stageWidth;
 					_stageProxies[i].height = _stage.stageHeight;
@@ -95,20 +98,20 @@ package me.feng3d.core.manager
 				}
 				++i;
 			}
-			
+
 			throw new Error("Too many Stage3D instances used!");
 			return null;
 		}
-		
+
 		/**
 		 * Checks if a new stage3DProxy can be created and managed by the class.
 		 * @return true if there is one slot free for a new stage3DProxy
 		 */
 		public function get hasFreeStage3DProxy():Boolean
 		{
-			return _numStageProxies < _stageProxies.length? true : false;
+			return _numStageProxies < _stageProxies.length ? true : false;
 		}
-		
+
 		/**
 		 * Returns the amount of stage3DProxy objects that can be created and managed by the class
 		 * @return the amount of free slots
@@ -117,7 +120,7 @@ package me.feng3d.core.manager
 		{
 			return _stageProxies.length - _numStageProxies;
 		}
-		
+
 		/**
 		 * Returns the amount of Stage3DProxy objects currently managed by the class.
 		 * @return the amount of slots used
@@ -126,7 +129,7 @@ package me.feng3d.core.manager
 		{
 			return _numStageProxies;
 		}
-		
+
 		/**
 		 * Returns the maximum amount of Stage3DProxy objects that can be managed by the class
 		 * @return the maximum amount of Stage3DProxy objects that can be managed by the class
@@ -136,6 +139,7 @@ package me.feng3d.core.manager
 			return _stageProxies.length;
 		}
 	}
+
 }
 
 class Stage3DManagerSingletonEnforcer

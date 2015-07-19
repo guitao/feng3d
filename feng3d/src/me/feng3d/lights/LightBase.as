@@ -1,13 +1,16 @@
 package me.feng3d.lights
 {
+	import me.feng.error.AbstractMethodError;
 	import me.feng3d.arcane;
 	import me.feng3d.entities.Entity;
+	import me.feng3d.events.LightEvent;
 	import me.feng3d.library.assets.AssetType;
+	import me.feng3d.lights.shadowmaps.ShadowMapperBase;
 
 	use namespace arcane;
 
 	/**
-	 * 光源
+	 * 灯光基类
 	 * @author warden_feng 2014-9-11
 	 */
 	public class LightBase extends Entity
@@ -33,9 +36,46 @@ package me.feng3d.lights
 		arcane var _diffuseG:Number = 1;
 		arcane var _diffuseB:Number = 1;
 
+		private var _castsShadows:Boolean;
+		private var _shadowMapper:ShadowMapperBase;
+
+		/**
+		 * 创建一个灯光
+		 */
 		public function LightBase()
 		{
 			super();
+		}
+
+		public function get castsShadows():Boolean
+		{
+			return _castsShadows;
+		}
+
+		public function set castsShadows(value:Boolean):void
+		{
+			if (_castsShadows == value)
+				return;
+
+			_castsShadows = value;
+
+			if (value)
+			{
+				_shadowMapper ||= createShadowMapper();
+				_shadowMapper.light = this;
+			}
+			else
+			{
+				_shadowMapper.dispose();
+				_shadowMapper = null;
+			}
+
+			dispatchEvent(new LightEvent(LightEvent.CASTS_SHADOW_CHANGE));
+		}
+
+		protected function createShadowMapper():ShadowMapperBase
+		{
+			throw new AbstractMethodError();
 		}
 
 		/**
@@ -156,6 +196,17 @@ package me.feng3d.lights
 			_ambientR = ((_ambientColor >> 16) & 0xff) / 0xff * _ambient;
 			_ambientG = ((_ambientColor >> 8) & 0xff) / 0xff * _ambient;
 			_ambientB = (_ambientColor & 0xff) / 0xff * _ambient;
+		}
+
+		public function get shadowMapper():ShadowMapperBase
+		{
+			return _shadowMapper;
+		}
+
+		public function set shadowMapper(value:ShadowMapperBase):void
+		{
+			_shadowMapper = value;
+			_shadowMapper.light = this;
 		}
 	}
 }

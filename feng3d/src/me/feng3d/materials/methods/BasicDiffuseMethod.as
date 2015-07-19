@@ -1,12 +1,14 @@
 package me.feng3d.materials.methods
 {
 	import me.feng3d.arcane;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
 	import me.feng3d.core.buffer.context3d.FCVectorBuffer;
 	import me.feng3d.core.buffer.context3d.FSBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDLight;
 	import me.feng3d.fagal.fragment.light.F_DiffusePostLighting;
+	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.params.ShaderParamsCommon;
+	import me.feng3d.fagal.params.ShaderParamsLight;
 	import me.feng3d.textures.Texture2DBase;
 
 	use namespace arcane;
@@ -30,11 +32,14 @@ package me.feng3d.materials.methods
 
 		private var _isFirstLight:Boolean;
 
+		/**
+		 * @inheritDoc
+		 */
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.TEXTURE_FS, FSBuffer, updateTextureBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.DIFFUSEINPUT_FC_VECTOR, FCVectorBuffer, updateDiffuseInputBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDCommon.TEXTURE_FS, updateTextureBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.DIFFUSEINPUT_FC_VECTOR, updateDiffuseInputBuffer);
 		}
 
 		/** 漫反射颜色 */
@@ -49,6 +54,9 @@ package me.feng3d.materials.methods
 			updateDiffuse();
 		}
 
+		/**
+		 * 更新漫反射值
+		 */
 		private function updateDiffuse():void
 		{
 			diffuseInputData[0] = ((_diffuseColor >> 16) & 0xff) / 0xff;
@@ -67,11 +75,17 @@ package me.feng3d.materials.methods
 			diffuseInputData[3] = value;
 		}
 
+		/**
+		 * 更新纹理缓冲
+		 */
 		private function updateTextureBuffer(textureBuffer:FSBuffer):void
 		{
 			textureBuffer.update(texture);
 		}
 
+		/**
+		 * 更新漫反射输入片段常量缓冲
+		 */
 		private function updateDiffuseInputBuffer(diffuseInputBuffer:FCVectorBuffer):void
 		{
 			diffuseInputBuffer.update(diffuseInputData);
@@ -94,22 +108,32 @@ package me.feng3d.materials.methods
 
 			_texture = value;
 
-			markBufferDirty(Context3DBufferTypeID.TEXTURE_FS);
+			markBufferDirty(Context3DBufferTypeIDCommon.TEXTURE_FS);
 		}
 
-		override arcane function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy):void
+		/**
+		 * @inheritDoc
+		 */
+		override arcane function activate(shaderParams:ShaderParams):void
 		{
-			shaderParams.needsUV += texture ? 1 : 0;
-			shaderParams.needsNormals += shaderParams.numLights > 0 ? 1 : 0;
+			//通用渲染参数
+			var common:ShaderParamsCommon = shaderParams.getComponent(ShaderParamsCommon.NAME);
+			var shaderParamsLight:ShaderParamsLight = shaderParams.getComponent(ShaderParamsLight.NAME);
 
-			shaderParams.hasDiffuseTexture = _texture != null;
-			shaderParams.usingDiffuseMethod += 1;
-			
-			shaderParams.diffuseMethod = F_DiffusePostLighting;
+			common.needsUV += texture ? 1 : 0;
+			shaderParamsLight.needsNormals += shaderParamsLight.numLights > 0 ? 1 : 0;
 
-			shaderParams.addSampleFlags(Context3DBufferTypeID.TEXTURE_FS, _texture);
+			common.hasDiffuseTexture = _texture != null;
+			common.usingDiffuseMethod += 1;
+
+			shaderParamsLight.diffuseMethod = F_DiffusePostLighting;
+
+			common.addSampleFlags(Context3DBufferTypeIDCommon.TEXTURE_FS, _texture);
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override public function copyFrom(method:ShadingMethodBase):void
 		{
 			var diff:BasicDiffuseMethod = BasicDiffuseMethod(method);

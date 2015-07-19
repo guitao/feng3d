@@ -2,6 +2,7 @@ package me.feng3d.entities.segment
 {
 
 	import me.feng3d.core.base.subgeometry.SubGeometry;
+	import me.feng3d.fagal.context3dDataIds.SegmentContext3DBufferTypeID;
 
 	/**
 	 * 线段渲染数据缓存
@@ -127,3 +128,5 @@ package me.feng3d.entities.segment
 		}
 	}
 }
+
+

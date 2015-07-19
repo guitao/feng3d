@@ -6,20 +6,21 @@ package me.feng3d.passes
 
 	import me.feng3d.arcane;
 	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.base.IRenderable;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.buffer.context3d.DepthTestBuffer;
 	import me.feng3d.core.buffer.context3d.FSBuffer;
 	import me.feng3d.core.buffer.context3d.ProgramBuffer;
 	import me.feng3d.core.buffer.context3d.VCMatrixBuffer;
 	import me.feng3d.core.buffer.context3d.VCVectorBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
 	import me.feng3d.debug.Debug;
-	import me.feng3d.fagal.params.ShaderParams;
 	import me.feng3d.fagal.runFagalMethod;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeID;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDSkyBox;
 	import me.feng3d.fagal.fragment.F_SkyBox;
+	import me.feng3d.fagal.params.ShaderParamsCommon;
 	import me.feng3d.fagal.vertex.V_SkyBox;
-	import me.feng3d.textures.CubeTextureBase;
+	import me.feng3d.textures.CubeTextureProxyBase;
 
 	use namespace arcane;
 
@@ -33,7 +34,7 @@ package me.feng3d.passes
 		private const scaleSkybox:Vector.<Number> = new Vector.<Number>(4);
 		private const modelViewProjection:Matrix3D = new Matrix3D();
 
-		private var _cubeTexture:CubeTextureBase;
+		private var _cubeTexture:CubeTextureProxyBase;
 
 		public function SkyBoxPass()
 		{
@@ -43,10 +44,10 @@ package me.feng3d.passes
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.TEXTURE_FS, FSBuffer, updateTextureBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.PROJECTION_VC_MATRIX, VCMatrixBuffer, updateProjectionBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.CAMERAPOS_VC_VECTOR, VCVectorBuffer, updateCameraPosBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.SCALESKYBOX_VC_VECTOR, VCVectorBuffer, updateScaleSkyboxBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDCommon.TEXTURE_FS, updateTextureBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDCommon.PROJECTION_VC_MATRIX, updateProjectionBuffer);
+			mapContext3DBuffer(Context3DBufferTypeID.CAMERAPOS_VC_VECTOR, updateCameraPosBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDSkyBox.SCALESKYBOX_VC_VECTOR, updateScaleSkyboxBuffer);
 		}
 
 		private function updateProjectionBuffer(projectionBuffer:VCMatrixBuffer):void
@@ -76,15 +77,15 @@ package me.feng3d.passes
 			depthTestBuffer.update(false, Context3DCompareMode.LESS);
 		}
 
-		public function get cubeTexture():CubeTextureBase
+		public function get cubeTexture():CubeTextureProxyBase
 		{
 			return _cubeTexture;
 		}
 
-		public function set cubeTexture(value:CubeTextureBase):void
+		public function set cubeTexture(value:CubeTextureProxyBase):void
 		{
 			_cubeTexture = value;
-			markBufferDirty(Context3DBufferTypeID.TEXTURE_FS);
+			markBufferDirty(Context3DBufferTypeIDCommon.TEXTURE_FS);
 		}
 
 		override arcane function updateProgramBuffer(programBuffer:ProgramBuffer):void
@@ -105,16 +106,16 @@ package me.feng3d.passes
 			programBuffer.update(vertexCode, fragmentCode);
 		}
 
-		override arcane function render(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		override arcane function render(renderable:IRenderable, camera:Camera3D):void
 		{
 			modelViewProjection.identity();
 			modelViewProjection.append(renderable.sourceEntity.sceneTransform);
 			modelViewProjection.append(camera.viewProjection);
 		}
 
-		override arcane function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		override arcane function activate(camera:Camera3D):void
 		{
-			super.activate(shaderParams, stage3DProxy, camera);
+			super.activate(camera);
 
 			var pos:Vector3D = camera.scenePosition;
 			cameraPos[0] = pos.x;
@@ -125,7 +126,10 @@ package me.feng3d.passes
 			scaleSkybox[0] = scaleSkybox[1] = scaleSkybox[2] = camera.lens.far / Math.sqrt(4);
 			scaleSkybox[3] = 1;
 
-			shaderParams.addSampleFlags(Context3DBufferTypeID.TEXTURE_FS, _cubeTexture);
+			//通用渲染参数
+			var common:ShaderParamsCommon = shaderParams.getComponent(ShaderParamsCommon.NAME);
+
+			common.addSampleFlags(Context3DBufferTypeIDCommon.TEXTURE_FS, _cubeTexture);
 		}
 	}
 }

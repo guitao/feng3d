@@ -1,8 +1,7 @@
 package me.feng3d
 {
 	/**
-	 * The namespace used to enclose properties and methods that should only be available within the Away3D library.
-	 * This keeps the public API clean and prevents the calling of methods that should never be called manually.
+	 * 该命名空间用于封装只用于feng3d中的属性与方法，简化API。
 	 */
 	public namespace arcane;
 }

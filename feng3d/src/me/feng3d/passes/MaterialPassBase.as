@@ -6,23 +6,28 @@ package me.feng3d.passes
 	import flash.display3D.Context3DTriangleFace;
 	import flash.events.Event;
 
+	import me.feng.error.AbstractClassError;
+	import me.feng.error.AbstractMethodError;
 	import me.feng3d.arcane;
 	import me.feng3d.animators.base.AnimationSetBase;
-	import me.feng3d.animators.AnimationType;
 	import me.feng3d.cameras.Camera3D;
 	import me.feng3d.core.base.Context3DBufferOwner;
-	import me.feng3d.core.base.IRenderable;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.buffer.context3d.BlendFactorsBuffer;
 	import me.feng3d.core.buffer.context3d.CullingBuffer;
 	import me.feng3d.core.buffer.context3d.DepthTestBuffer;
 	import me.feng3d.core.buffer.context3d.ProgramBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
 	import me.feng3d.debug.Debug;
-	import me.feng3d.errors.AbstractMethodError;
 	import me.feng3d.fagal.runFagalMethod;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 	import me.feng3d.fagal.fragment.F_Main;
 	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.params.ShaderParamsAnimation;
+	import me.feng3d.fagal.params.ShaderParamsCommon;
+	import me.feng3d.fagal.params.ShaderParamsLight;
+	import me.feng3d.fagal.params.ShaderParamsShadowMap;
+	import me.feng3d.fagal.params.ShaderParamsTerrain;
+	import me.feng3d.fagal.params.ShaderParamsWar3;
 	import me.feng3d.fagal.vertex.V_Main;
 	import me.feng3d.materials.lightpickers.LightPickerBase;
 	import me.feng3d.materials.methods.ShaderMethodSetup;
@@ -30,8 +35,8 @@ package me.feng3d.passes
 	use namespace arcane;
 
 	/**
-	 * 生成与管理渲染程序
-	 * （实现MaterialPassBase类的功能，说实话我并没有理解MaterialPassBase中Pass的意思）
+	 * 纹理通道基类
+	 * <p>该类实现了生成与管理渲染程序功能</p>
 	 * @author warden_feng 2014-4-15
 	 */
 	public class MaterialPassBase extends Context3DBufferOwner
@@ -64,13 +69,37 @@ package me.feng3d.passes
 
 		protected var _numPointLights:uint;
 
+		private var _shaderParams:ShaderParams;
+
+		/**
+		 * 创建一个纹理通道基类
+		 */
 		public function MaterialPassBase()
 		{
+			AbstractClassError.check(this);
 		}
 
 		/**
-		 *
-		 * Defines whether smoothing should be applied to any used textures.
+		 * 渲染参数
+		 */
+		public function get shaderParams():ShaderParams
+		{
+			if (_shaderParams == null)
+			{
+				_shaderParams = new ShaderParams();
+				//在这里添加组件 显然不合适，暂时这样处理，以后整理
+				_shaderParams.addComponent(new ShaderParamsCommon());
+				_shaderParams.addComponent(new ShaderParamsLight());
+				_shaderParams.addComponent(new ShaderParamsShadowMap());
+				_shaderParams.addComponent(new ShaderParamsAnimation());
+				_shaderParams.addComponent(new ShaderParamsTerrain());
+				_shaderParams.addComponent(new ShaderParamsWar3());
+			}
+			return _shaderParams;
+		}
+
+		/**
+		 * 是否平滑
 		 */
 		public function get smooth():Boolean
 		{
@@ -86,7 +115,7 @@ package me.feng3d.passes
 		}
 
 		/**
-		 * Defines whether textures should be tiled.
+		 * 是否重复平铺
 		 */
 		public function get repeat():Boolean
 		{
@@ -102,7 +131,7 @@ package me.feng3d.passes
 		}
 
 		/**
-		 * Defines whether any used textures should use mipmapping.
+		 * 贴图是否使用分级细化
 		 */
 		public function get mipmap():Boolean
 		{
@@ -117,6 +146,9 @@ package me.feng3d.passes
 			invalidateShaderProgram();
 		}
 
+		/**
+		 * 是否开启混合模式
+		 */
 		public function get enableBlending():Boolean
 		{
 			return _enableBlending;
@@ -125,17 +157,20 @@ package me.feng3d.passes
 		public function set enableBlending(value:Boolean):void
 		{
 			_enableBlending = value;
-			markBufferDirty(Context3DBufferTypeID.BLEND_FACTORS);
-			markBufferDirty(Context3DBufferTypeID.DEPTH_TEST);
+			markBufferDirty(Context3DBufferTypeIDCommon.BLEND_FACTORS);
+			markBufferDirty(Context3DBufferTypeIDCommon.DEPTH_TEST);
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.CULLING, CullingBuffer, updateCullingBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.BLEND_FACTORS, BlendFactorsBuffer, updateBlendFactorsBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.DEPTH_TEST, DepthTestBuffer, updateDepthTestBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.PROGRAM, ProgramBuffer, updateProgramBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDCommon.CULLING, updateCullingBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDCommon.BLEND_FACTORS, updateBlendFactorsBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDCommon.DEPTH_TEST, updateDepthTestBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDCommon.PROGRAM, updateProgramBuffer);
 		}
 
 		/**
@@ -156,59 +191,84 @@ package me.feng3d.passes
 			invalidateShaderProgram();
 		}
 
-		arcane function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		/**
+		 * 激活渲染通道
+		 * @param shaderParams		渲染参数
+		 * @param stage3DProxy		3D舞台代理
+		 * @param camera			摄像机
+		 */
+		arcane function activate(camera:Camera3D):void
 		{
-			shaderParams.useMipmapping = _mipmap;
-			shaderParams.useSmoothTextures = _smooth;
-			shaderParams.repeatTextures = _repeat;
+			//通用渲染参数
+			var common:ShaderParamsCommon = shaderParams.getComponent(ShaderParamsCommon.NAME);
 
-			shaderParams.animationType = AnimationType.NONE;
+			common.useMipmapping = _mipmap;
+			common.useSmoothTextures = _smooth;
+			common.repeatTextures = _repeat;
 
 			if (_animationSet)
-				_animationSet.activate(shaderParams, stage3DProxy, this);
+				_animationSet.activate(shaderParams, this);
+		}
+
+		/**
+		 * 清除通道渲染数据
+		 * @param stage3DProxy		3D舞台代理
+		 */
+		arcane function deactivate():void
+		{
 		}
 
 		/**
 		 * 更新动画状态
-		 * @param renderable
-		 * @param stage3DProxy
-		 * @param camera
+		 * @param renderable			渲染对象
+		 * @param stage3DProxy			3D舞台代理
+		 * @param camera				摄像机
 		 */
-		arcane function updateAnimationState(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		arcane function updateAnimationState(renderable:IRenderable, camera:Camera3D):void
 		{
-			renderable.animator.setRenderState(renderable, stage3DProxy, camera);
+			renderable.animator.setRenderState(renderable, camera);
 		}
 
 		/**
 		 * 渲染
-		 * @param renderable
-		 * @param stage3DProxy
-		 * @param camera
+		 * @param renderable			渲染对象
+		 * @param camera				摄像机
 		 */
-		arcane function render(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		arcane function render(renderable:IRenderable, camera:Camera3D):void
 		{
 			throw new AbstractMethodError();
 		}
 
 		/**
 		 * 标记渲染程序失效
-		 * @param updateMaterial
 		 */
 		arcane function invalidateShaderProgram():void
 		{
-			markBufferDirty(Context3DBufferTypeID.PROGRAM);
+			markBufferDirty(Context3DBufferTypeIDCommon.PROGRAM);
 		}
 
+		/**
+		 * 更新深度测试缓冲
+		 * @param depthTestBuffer			深度测试缓冲
+		 */
 		protected function updateDepthTestBuffer(depthTestBuffer:DepthTestBuffer):void
 		{
 			depthTestBuffer.update(_writeDepth && !enableBlending, _depthCompareMode);
 		}
 
+		/**
+		 * 更新混合因子缓冲
+		 * @param blendFactorsBuffer		混合因子缓冲
+		 */
 		protected function updateBlendFactorsBuffer(blendFactorsBuffer:BlendFactorsBuffer):void
 		{
 			blendFactorsBuffer.update(_blendFactorSource, _blendFactorDest);
 		}
 
+		/**
+		 * 更新剔除模式缓冲
+		 * @param cullingBuffer		剔除模式缓冲
+		 */
 		protected function updateCullingBuffer(cullingBuffer:CullingBuffer):void
 		{
 			cullingBuffer.update(_bothSides ? Context3DTriangleFace.NONE : _defaultCulling);
@@ -276,6 +336,10 @@ package me.feng3d.passes
 			invalidateShaderProgram();
 		}
 
+		/**
+		 * 设置混合模式
+		 * @param value		混合模式
+		 */
 		public function setBlendMode(value:String):void
 		{
 			switch (value)
@@ -326,7 +390,7 @@ package me.feng3d.passes
 		public function set writeDepth(value:Boolean):void
 		{
 			_writeDepth = value;
-			markBufferDirty(Context3DBufferTypeID.DEPTH_TEST);
+			markBufferDirty(Context3DBufferTypeIDCommon.DEPTH_TEST);
 		}
 
 		/**
@@ -340,7 +404,7 @@ package me.feng3d.passes
 		public function set depthCompareMode(value:String):void
 		{
 			_depthCompareMode = value;
-			markBufferDirty(Context3DBufferTypeID.DEPTH_TEST);
+			markBufferDirty(Context3DBufferTypeIDCommon.DEPTH_TEST);
 		}
 
 		/**
@@ -354,11 +418,11 @@ package me.feng3d.passes
 		public function set bothSides(value:Boolean):void
 		{
 			_bothSides = value;
-			markBufferDirty(Context3DBufferTypeID.CULLING);
+			markBufferDirty(Context3DBufferTypeIDCommon.CULLING);
 		}
 
 		/**
-		 * Indicates whether the shader uses any lights.
+		 * 渲染中是否使用了灯光
 		 */
 		protected function usesLights():Boolean
 		{

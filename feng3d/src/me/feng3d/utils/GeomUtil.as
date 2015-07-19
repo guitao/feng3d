@@ -5,8 +5,8 @@ package me.feng3d.utils
 	import me.feng3d.arcane;
 	import me.feng3d.core.base.subgeometry.SkinnedSubGeometry;
 	import me.feng3d.core.base.subgeometry.SubGeometry;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
 	import me.feng3d.debug.assert;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 
 	use namespace arcane;
 
@@ -196,8 +196,8 @@ package me.feng3d.utils
 		public static function copyDataSubGeom(source:SubGeometry, target:SubGeometry):void
 		{
 			target.numVertices = source.numVertices;
-			target.updateVertexPositionData(source.getVAData(Context3DBufferTypeID.POSITION_VA_3).concat());
-			target.setVAData(Context3DBufferTypeID.UV_VA_2, source.getVAData(Context3DBufferTypeID.UV_VA_2).concat());
+			target.updateVertexPositionData(source.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3).concat());
+			target.setVAData(Context3DBufferTypeIDCommon.UV_VA_2, source.getVAData(Context3DBufferTypeIDCommon.UV_VA_2).concat());
 			target.updateIndexData(source.indices.concat());
 		}
 

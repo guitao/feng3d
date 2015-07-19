@@ -4,17 +4,17 @@ package me.feng3d.passes
 
 	import me.feng3d.arcane;
 	import me.feng3d.cameras.Camera3D;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
 	import me.feng3d.core.buffer.context3d.FCVectorBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.fagal.params.ShaderParams;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDLight;
+	import me.feng3d.fagal.params.ShaderParamsLight;
 	import me.feng3d.lights.DirectionalLight;
 	import me.feng3d.lights.PointLight;
 
 	use namespace arcane;
 
 	/**
-	 *
+	 * 超级渲染通道
+	 * <p>提供灯光渲染相关信息</p>
 	 * @author warden_feng 2014-7-1
 	 */
 	public class SuperShaderPass extends CompiledPass
@@ -37,20 +37,26 @@ package me.feng3d.passes
 		/** 点光源镜面反射颜色数据 */
 		private const pointLightSpecularData:Vector.<Number> = new Vector.<Number>();
 
+		/**
+		 * 创建超级渲染通道
+		 */
 		public function SuperShaderPass()
 		{
 			super();
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.DIRLIGHTSCENEDIR_FC_VECTOR, FCVectorBuffer, updateDirLightSceneDirBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.DIRLIGHTDIFFUSE_FC_VECTOR, FCVectorBuffer, updateDirLightDiffuseReg);
-			mapContext3DBuffer(Context3DBufferTypeID.DIRLIGHTSPECULAR_FC_VECTOR, FCVectorBuffer, updateDirLightSpecularBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.POINTLIGHTSCENEPOS_FC_VECTOR, FCVectorBuffer, updatePointLightSceneDirBuffer);
-			mapContext3DBuffer(Context3DBufferTypeID.POINTLIGHTDIFFUSE_FC_VECTOR, FCVectorBuffer, updatePointLightDiffuseReg);
-			mapContext3DBuffer(Context3DBufferTypeID.POINTLIGHTSPECULAR_FC_VECTOR, FCVectorBuffer, updatePointLightSpecularBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.DIRLIGHTSCENEDIR_FC_VECTOR, updateDirLightSceneDirBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.DIRLIGHTDIFFUSE_FC_VECTOR, updateDirLightDiffuseReg);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.DIRLIGHTSPECULAR_FC_VECTOR, updateDirLightSpecularBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.POINTLIGHTSCENEPOS_FC_VECTOR, updatePointLightSceneDirBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.POINTLIGHTDIFFUSE_FC_VECTOR, updatePointLightDiffuseReg);
+			mapContext3DBuffer(Context3DBufferTypeIDLight.POINTLIGHTSPECULAR_FC_VECTOR, updatePointLightSpecularBuffer);
 		}
 
 		private function updateDirLightSpecularBuffer(dirLightSpecularBuffer:FCVectorBuffer):void
@@ -83,16 +89,24 @@ package me.feng3d.passes
 			pointLightSceneDirBuffer.update(pointLightSceneDirData);
 		}
 
-		override arcane function activate(shaderParams:ShaderParams, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		/**
+		 * @inheritDoc
+		 */
+		override arcane function activate(camera:Camera3D):void
 		{
 			if (_lightPicker)
 			{
-				shaderParams.numPointLights = _lightPicker.numPointLights;
-				shaderParams.numDirectionalLights = _lightPicker.numDirectionalLights;
+				var shaderParamsLight:ShaderParamsLight = shaderParams.getComponent(ShaderParamsLight.NAME);
+
+				shaderParamsLight.numPointLights = _lightPicker.numPointLights;
+				shaderParamsLight.numDirectionalLights = _lightPicker.numDirectionalLights;
 			}
-			super.activate(shaderParams, stage3DProxy, camera);
+			super.activate(camera);
 		}
 
+		/**
+		 * @inheritDoc
+		 */
 		override protected function updateLightConstants():void
 		{
 			var dirLight:DirectionalLight;

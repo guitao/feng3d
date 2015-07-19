@@ -4,7 +4,7 @@ package me.feng3d.events
 	import me.feng3d.cameras.Camera3D;
 	
 	/**
-	 * 照相机事件
+	 * 摄像机事件
 	 * @author warden_feng 2014-10-14
 	 */
 	public class CameraEvent extends FEvent

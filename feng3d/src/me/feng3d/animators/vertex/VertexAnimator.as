@@ -3,18 +3,18 @@ package me.feng3d.animators.vertex
 	import flash.utils.Dictionary;
 
 	import me.feng3d.arcane;
+	import me.feng3d.animators.IAnimator;
+	import me.feng3d.animators.base.AnimationSetBase;
+	import me.feng3d.animators.base.MultiClipAnimator;
 	import me.feng3d.cameras.Camera3D;
 	import me.feng3d.core.base.Geometry;
-	import me.feng3d.core.base.IRenderable;
+	import me.feng3d.core.base.renderable.IRenderable;
 	import me.feng3d.core.base.subgeometry.SubGeometry;
 	import me.feng3d.core.base.subgeometry.VertexSubGeometry;
 	import me.feng3d.core.base.submesh.SubMesh;
-	import me.feng3d.core.buffer.Context3DBufferTypeID;
 	import me.feng3d.core.buffer.context3d.VCVectorBuffer;
-	import me.feng3d.core.proxy.Stage3DProxy;
-	import me.feng3d.animators.base.AnimationSetBase;
-	import me.feng3d.animators.IAnimator;
-	import me.feng3d.animators.base.MultiClipAnimator;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDAnimation;
+	import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 
 	use namespace arcane;
 
@@ -55,7 +55,7 @@ package me.feng3d.animators.vertex
 		override protected function initBuffers():void
 		{
 			super.initBuffers();
-			mapContext3DBuffer(Context3DBufferTypeID.WEIGHTS_VC_VECTOR, VCVectorBuffer, updateWeightsBuffer);
+			mapContext3DBuffer(Context3DBufferTypeIDAnimation.WEIGHTS_VC_VECTOR, updateWeightsBuffer);
 		}
 
 		private function updateWeightsBuffer(weightsBuffer:VCVectorBuffer):void
@@ -91,12 +91,12 @@ package me.feng3d.animators.vertex
 				reset(name, offset);
 		}
 
-		public function setRenderState(renderable:IRenderable, stage3DProxy:Stage3DProxy, camera:Camera3D):void
+		public function setRenderState(renderable:IRenderable, camera:Camera3D):void
 		{
 			//没有姿势时，使用默认姿势
 			if (!_poses.length)
 			{
-				setNullPose(stage3DProxy, renderable)
+				setNullPose(renderable)
 				return;
 			}
 
@@ -124,14 +124,14 @@ package me.feng3d.animators.vertex
 				var vertexSubGeom:VertexSubGeometry = VertexSubGeometry(subGeom);
 //				//获取默认姿势几何体数据
 				subGeom = _poses[0].subGeometries[subMesh._index] || subMesh.subGeometry;
-				vertexSubGeom.updateVertexData0(subGeom.getVAData(Context3DBufferTypeID.POSITION_VA_3).concat());
+				vertexSubGeom.updateVertexData0(subGeom.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3).concat());
 
 				subGeom = _poses[1].subGeometries[subMesh._index] || subMesh.subGeometry;
-				vertexSubGeom.updateVertexData1(subGeom.getVAData(Context3DBufferTypeID.POSITION_VA_3).concat());
+				vertexSubGeom.updateVertexData1(subGeom.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3).concat());
 			}
 		}
 
-		private function setNullPose(stage3DProxy:Stage3DProxy, renderable:IRenderable):void
+		private function setNullPose(renderable:IRenderable):void
 		{
 			var subMesh:SubMesh = SubMesh(renderable);
 
@@ -159,8 +159,8 @@ package me.feng3d.animators.vertex
 		private function morphGeometry(state:SubGeomAnimationState, subGeom:SubGeometry, subGeom1:SubGeometry):void
 		{
 			//几何体顶点数据
-			var vertexData:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeID.POSITION_VA_3);
-			var vertexData1:Vector.<Number> = subGeom1.getVAData(Context3DBufferTypeID.POSITION_VA_3);
+			var vertexData:Vector.<Number> = subGeom.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3);
+			var vertexData1:Vector.<Number> = subGeom1.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3);
 			//动画顶点数据（目标数据）
 			var targetData:Vector.<Number> = state.animatedVertexData;
 
@@ -173,7 +173,7 @@ package me.feng3d.animators.vertex
 	}
 }
 import me.feng3d.core.base.subgeometry.SubGeometry;
-import me.feng3d.core.buffer.Context3DBufferTypeID;
+import me.feng3d.fagal.context3dDataIds.Context3DBufferTypeIDCommon;
 
 
 /**
@@ -192,6 +192,6 @@ class SubGeomAnimationState
 	 */
 	public function SubGeomAnimationState(subGeom:SubGeometry)
 	{
-		animatedVertexData = subGeom.getVAData(Context3DBufferTypeID.POSITION_VA_3).concat();
+		animatedVertexData = subGeom.getVAData(Context3DBufferTypeIDCommon.POSITION_VA_3).concat();
 	}
 }

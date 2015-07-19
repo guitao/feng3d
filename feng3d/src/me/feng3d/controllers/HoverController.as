@@ -34,7 +34,7 @@ package me.feng3d.controllers
 
 		/**
 		 * 创建盘旋控制器
-	 	 * @param targetObject 控制对象
+		 * @param targetObject 控制对象
 		 * @param lookAtObject 被注视对象
 		 * @param panAngle 摄像机以Y轴旋转的角度
 		 * @param tiltAngle 摄像机以X轴旋转的角度
@@ -176,9 +176,8 @@ package me.feng3d.controllers
 		}
 
 		/**
-		 * Fractional difference in distance between the horizontal camera orientation and vertical camera orientation. Defaults to 2.
-		 *
-		 * @see    #distance
+		 * y因子，用于体现摄像机水平与垂直旋转的差异
+		 * @see #distance
 		 */
 		public function get yFactor():Number
 		{
@@ -234,12 +233,7 @@ package me.feng3d.controllers
 		}
 
 		/**
-		 * Updates the current tilt angle and pan angle values.
-		 *
-		 * Values are calculated using the defined <code>tiltAngle</code>, <code>panAngle</code> and <code>steps</code> variables.
-		 *
-		 * @param interpolate   If the update to a target pan- or tiltAngle is interpolated. Default is true.
-		 *
+		 * 更新当前倾斜与摆动角度
 		 * @see    #tiltAngle
 		 * @see    #panAngle
 		 * @see    #steps
@@ -304,7 +298,7 @@ package me.feng3d.controllers
 						Matrix3DUtils.getTranslation(_lookAtObject.transform, _pos);
 					}
 				}
-				else if (_lookAtObject.scene3D)
+				else if (_lookAtObject.scene)
 				{
 					_pos.x = _lookAtObject.scenePosition.x;
 					_pos.y = _lookAtObject.scenePosition.y;

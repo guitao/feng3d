@@ -4,7 +4,7 @@ package me.feng3d.animators.particle.node
 	import me.feng3d.animators.particle.data.ParticleProperties;
 	import me.feng3d.animators.particle.data.ParticlePropertiesMode;
 	import me.feng3d.fagal.context3dDataIds.ParticleContext3DBufferID;
-	import me.feng3d.fagal.params.ParticleShaderParam;
+	import me.feng3d.fagal.params.ShaderParamsParticle;
 
 	use namespace arcane;
 
@@ -49,7 +49,7 @@ package me.feng3d.animators.particle.node
 		/**
 		 * @inheritDoc
 		 */
-		override arcane function processAnimationSetting(particleShaderParam:ParticleShaderParam):void
+		override arcane function processAnimationSetting(particleShaderParam:ShaderParamsParticle):void
 		{
 			particleShaderParam[animationName] = true;
 		}

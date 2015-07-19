@@ -11,9 +11,9 @@ package me.feng3d.events
 	{
 		public static const MATRIX_CHANGED:String = "matrixChanged";
 
-		public function LensEvent(type:String, lens:LensBase = null, bubbles:Boolean = false)
+		public function LensEvent(type:String, lens:LensBase = null, bubbles:Boolean = false, cancelable:Boolean = false)
 		{
-			super(type, data, bubbles);
+			super(type, data, bubbles, cancelable);
 		}
 
 		public function get lens():LensBase
